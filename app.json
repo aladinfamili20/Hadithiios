@@ -1,4 +1,8 @@
 {
   "name": "HadithiSocial",
-  "displayName": "HadithiSocial"
+  "displayName": "HadithiSocial",
+   "react-native-google-mobile-ads": {
+         "android_app_id": "ca-app-pub-9427314859640201~6147895310"
+   }
+
 }
