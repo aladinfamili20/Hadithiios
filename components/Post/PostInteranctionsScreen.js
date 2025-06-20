@@ -14,7 +14,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useUser } from '../../data/Collections/FetchUserData';
 import RNModal from 'react-native-modal';
 
-
 const PostInteranctionsScreen = ({ post }) => {
   const theme = DarkMode();
   const user = auth().currentUser;
@@ -28,95 +27,81 @@ const PostInteranctionsScreen = ({ post }) => {
   const [likes, setLikes] = useState(post.likes_by_user || []);
   const [isSaved, setIsSaved] = useState(false);
 
-useEffect(() => {
-  setLikes(post.likes_by_user || []);
-  setIsLiked(uid && post.likes_by_user?.includes(uid));
-}, [post, uid]);
+  useEffect(() => {
+    setLikes(post.likes_by_user || []);
+    setIsLiked(uid && post.likes_by_user?.includes(uid));
+  }, [post, uid]);
 
-useEffect(() => {
-  setGetUserInfo(userData);
-  setIsSaved(uid && post.saved_by_user?.includes(uid));
-}, [userData, post, uid]);
-
+  useEffect(() => {
+    setGetUserInfo(userData);
+    setIsSaved(uid && post.saved_by_user?.includes(uid));
+  }, [userData, post, uid]);
 
   useEffect(() => {
     setGetUserInfo(userData);
   }, [userData]);
 
-
   const handleLike = async () => {
-  if (!uid) {
-    setGetError('You need to be logged in to like a post.');
-    return;
-  }
+    if (!uid) {
+      setGetError('You need to be logged in to like a post.');
+      return;
+    }
 
-  const postRef = firestore().collection('posts').doc(post.id);
+    const postRef = firestore().collection('posts').doc(post.id);
 
-  try {
-    const alreadyLiked = likes.includes(uid);
-    const updatedLikes = alreadyLiked
-      ? likes.filter(userId => userId !== uid)
-      : [...likes, uid];
+    try {
+      const alreadyLiked = likes.includes(uid);
+      const updatedLikes = alreadyLiked
+        ? likes.filter(userId => userId !== uid)
+        : [...likes, uid];
 
-    // Optimistic update
-    setLikes(updatedLikes);
-    setIsLiked(!alreadyLiked);
+      // Optimistic update
+      setLikes(updatedLikes);
+      setIsLiked(!alreadyLiked);
 
-    // Firestore update
-    await postRef.update({
-      likes_by_user: alreadyLiked
-        ? firestore.FieldValue.arrayRemove(uid)
-        : firestore.FieldValue.arrayUnion(uid),
-    });
-  } catch (error) {
-    console.error('Error updating likes:', error);
-    setGetError('There was an error liking the post. Please try again.');
-  }
-};
+      // Firestore update
+      await postRef.update({
+        likes_by_user: alreadyLiked
+          ? firestore.FieldValue.arrayRemove(uid)
+          : firestore.FieldValue.arrayUnion(uid),
+      });
+    } catch (error) {
+      console.error('Error updating likes:', error);
+      setGetError('There was an error liking the post. Please try again.');
+    }
+  };
 
- 
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
- 
-
-
-
 
   const handleSavePost = async () => {
-  if (!uid) {
-    setGetError('You need to be logged in to save a post.');
-    return;
-  }
+    if (!uid) {
+      setGetError('You need to be logged in to save a post.');
+      return;
+    }
 
-  const postRef = firestore().collection('posts').doc(post.id);
+    const postRef = firestore().collection('posts').doc(post.id);
 
-  try {
-    const willUnsave = isSaved;
+    try {
+      const willUnsave = isSaved;
 
-    // Optimistic update
-    setIsSaved(!willUnsave);
+      // Optimistic update
+      setIsSaved(!willUnsave);
 
-    // Firestore update
-    await postRef.update({
-      saved_by_user: willUnsave
-        ? firestore.FieldValue.arrayRemove(uid)
-        : firestore.FieldValue.arrayUnion(uid),
-    });
+      // Firestore update
+      await postRef.update({
+        saved_by_user: willUnsave
+          ? firestore.FieldValue.arrayRemove(uid)
+          : firestore.FieldValue.arrayUnion(uid),
+      });
 
-    console.log('Post saved/unsaved successfully!');
-  } catch (error) {
-    console.error('Error saving/unsaving post:', error);
-    setGetError('Error saving post. Please try again.');
-  }
-};
+      console.log('Post saved/unsaved successfully!');
+    } catch (error) {
+      console.error('Error saving/unsaving post:', error);
+      setGetError('Error saving post. Please try again.');
+    }
+  };
 
-
-
-
-
-
-
- 
   const generateReportPostUniqueId = () => {
     return `id_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
   };
@@ -174,21 +159,21 @@ useEffect(() => {
       <View style={styles(theme).interactions}>
         {/* Like Button */}
         <TouchableOpacity
-  onPress={handleLike}
-  style={styles(theme).buttonRow}
-  accessibilityLabel="Like Button"
-  accessibilityRole="button"
->
-  <Ionicons
-    name={isLiked ? 'heart' : 'heart-outline'}
-    size={24}
-    color={isLiked ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
-  />
-  <Text style={styles(theme).buttonText}>
-    {likes.length.toLocaleString('en')} {likes.length === 1 ? 'like' : 'likes'}
-  </Text>
-</TouchableOpacity>
-
+          onPress={handleLike}
+          style={styles(theme).buttonRow}
+          accessibilityLabel="Like Button"
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={isLiked ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isLiked ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
+          />
+          <Text style={styles(theme).buttonText}>
+            {likes.length.toLocaleString('en')}{' '}
+            {likes.length === 1 ? 'like' : 'likes'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Comments Button */}
         <TouchableOpacity
@@ -209,18 +194,17 @@ useEffect(() => {
         </TouchableOpacity>
 
         {/* Save Post Button */}
-       <TouchableOpacity
-  onPress={handleSavePost}
-  accessibilityLabel="Save Post Button"
-  accessibilityRole="button"
->
-  <Ionicons
-    name={isSaved ? 'bookmark' : 'bookmark-outline'}
-    size={24}
-    color={isSaved ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
-  />
-</TouchableOpacity>
-
+        <TouchableOpacity
+          onPress={handleSavePost}
+          accessibilityLabel="Save Post Button"
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={isSaved ? 'bookmark' : 'bookmark-outline'}
+            size={24}
+            color={isSaved ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
+          />
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setReportModal(true)}

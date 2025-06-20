@@ -34,6 +34,9 @@ import VideoHandler from '../../components/VideoHandler';
 import DarkMode from '../../components/Theme/DarkMode';
 import {getApp} from '@react-native-firebase/app';
 import {debounce, chunk} from 'lodash';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import VideosAds from './VideosAds';
+const liveAdUnit = 'ca-app-pub-9427314859640201/5919265806';
 
 const BATCH_SIZE = 10; // Number of posts to fetch per batch
 
@@ -146,7 +149,29 @@ const VideoScreen = () => {
     fetchFollowedPosts(false);
   };
 
-  const renderItem = ({item}) => <VideoHandler post={item} />;
+ 
+
+  const renderVideos = useCallback(({item, index}) => (
+
+    <View>
+      <VideoHandler post={item} />
+      {index > 0 && index % 6 === 0 && (
+        <View style={{marginVertical: 10, alignItems: 'center'}}>
+          <BannerAd
+            unitId={liveAdUnit}
+            // unitId={adUnitId}
+            size={BannerAdSize.ADAPTIVE_BANNER}
+            // size={BannerAdSize.SMART_BANNER}
+            // onAdFailedToLoad={(error) => console.error('Ad failed to load: ', error)}
+            // onAdLoaded={() => console.log('Ad loaded')}
+            requestOptions={{requestNonPersonalizedAdsOnly: true}}
+          />
+        </View>
+      )}
+    </View>
+  ), []);
+
+
 
   const ListFooterComponent = () =>
     fetchingMore ? (
@@ -172,9 +197,10 @@ const VideoScreen = () => {
       ) : (
         <FlatList
           data={postData}
-          renderItem={renderItem}
+          renderItem={renderVideos}
           keyExtractor={item => item.id}
           onEndReached={handleLoadMore}
+          ListHeaderComponent={VideosAds}
           onEndReachedThreshold={0.5}
           ListFooterComponent={ListFooterComponent}
           ListEmptyComponent={

@@ -111,6 +111,19 @@ const Settings = () => {
               />
               <Text style={styles(theme).settingsLinksText}>Liked video</Text>
             </TouchableOpacity>
+            <Text style={styles(theme).text}>Access</Text>
+            <TouchableOpacity
+              style={styles(theme).settingsButtons}
+              onPress={() => navigation.navigate('manageblockedusers')}>
+              <Ionicons
+                name="ban-outline"
+                color={theme === 'dark' ? '#fff' : '#121212'}
+                size={24}
+              />
+              <Text style={styles(theme).settingsLinksText}>
+                Manage Blocked Users
+              </Text>
+            </TouchableOpacity>
             <Text style={styles(theme).text}>Legal Policies</Text>
             <TouchableOpacity
               style={styles(theme).settingsButtons}

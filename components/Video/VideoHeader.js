@@ -18,6 +18,8 @@ import { firestore } from '../../data/Firebase';
 import { truncateString } from '../TextShortner';
 
 const VideoHeader = ({post, user}) => {
+
+
   const theme = DarkMode();
   const {userData} = useUser();
 
@@ -102,7 +104,10 @@ const VideoHeader = ({post, user}) => {
 
   return (
     <View>
+
       <View style={styles(theme).postContainer}>
+
+
         <View style={{flexDirection: 'row'}}>
           <TouchableOpacity onPress={() => navigateToProfile(post?.uid)}>
             <Image

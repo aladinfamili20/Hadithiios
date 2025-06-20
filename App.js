@@ -42,6 +42,7 @@ import UploadImage from './screens/Post/UploadImage';
 import mobileAds from 'react-native-google-mobile-ads';
 import EditPhoto from './screens/EditPhoto';
 import EditVideos from './screens/EditVideos';
+import ManageBlockedUsersScreen from './screens/ManageBlockedUsersScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -112,6 +113,7 @@ useEffect(() => {
       <Stack.Screen name='DeleteAccount' component={DeleteAccountScreen} options={{headerShown: false}}/>
       <Stack.Screen name='UserProfileScreen' component={UserProfileScreen} options={{headerShown: false}}/>
       <Stack.Screen name='search' component={SearchScreen} options={{headerShown: false}}/>
+      <Stack.Screen name='manageblockedusers' component={ManageBlockedUsersScreen} options={{headerShown: false}}/>
 
     </Stack.Navigator>
    </NavigationContainer>

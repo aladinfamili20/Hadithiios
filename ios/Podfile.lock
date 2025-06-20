@@ -3119,6 +3119,9 @@ PODS:
     - Yoga
   - react-native-safe-area-context (5.4.1):
     - React-Core
+  - react-native-simple-toast (3.3.2):
+    - React-Core
+    - Toast (~> 4)
   - react-native-video (6.15.0):
     - boost
     - DoubleConversion
@@ -3857,6 +3860,7 @@ PODS:
     - SocketRocket
     - Yoga
   - SocketRocket (0.7.1)
+  - Toast (4.1.1)
   - TOCropViewController (2.7.4)
   - Yoga (0.0.0)
 
@@ -3915,6 +3919,7 @@ DEPENDENCIES:
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-simple-toast (from `../node_modules/react-native-simple-toast`)
   - react-native-video (from `../node_modules/react-native-video`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -3987,6 +3992,7 @@ SPEC REPOS:
     - nanopb
     - RecaptchaInterop
     - SocketRocket
+    - Toast
     - TOCropViewController
 
 EXTERNAL SOURCES:
@@ -4085,6 +4091,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-pager-view"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-simple-toast:
+    :path: "../node_modules/react-native-simple-toast"
   react-native-video:
     :path: "../node_modules/react-native-video"
   React-NativeModulesApple:
@@ -4245,6 +4253,7 @@ SPEC CHECKSUMS:
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-pager-view: e21b7f1e0cd83a7390ce6fa31fa4516a79e0951f
   react-native-safe-area-context: dde2052b903c11d677c320b599c3244021c34ce8
+  react-native-simple-toast: 4c9cc976cb92b6e5fb555e7c57fce38b90a56d07
   react-native-video: 1b9fd08e519a3ebff034fc2f322ed1624890b509
   React-NativeModulesApple: 7fda5d50e7aacd04eee21799be16913360562eb5
   React-oscompat: 7c0a341cc31e350da71ddf2e46de0a845d1d1626
@@ -4291,6 +4300,7 @@ SPEC CHECKSUMS:
   RNScreens: e1a6193318ee9bb7e39a1ebc8fb9b86355eedc46
   RNVectorIcons: bac25c9de68d605e58b3628dd567f79ff16402cd
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
+  Toast: 1f5ea13423a1e6674c4abdac5be53587ae481c4e
   TOCropViewController: 80b8985ad794298fb69d3341de183f33d1853654
   Yoga: c6dc84349a2b99e1900fe5729f5c34df75c009f2
 

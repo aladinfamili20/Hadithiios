@@ -22,7 +22,7 @@ import {
   startAfter,
   where,
 } from '@react-native-firebase/firestore';
-import {auth} from '../data/Firebase';
+import {auth, firestore} from '../data/Firebase';
 import FollowUsers from './FollowUsers';
 import {debounce, chunk} from 'lodash';
 import HomeFeedHeader from '../components/HomeFeedHeader';
@@ -49,7 +49,8 @@ export const fetchPostsByFollowing = async (
   lastVisible = null,
   batchSize = BATCH_SIZE
 ) => {
-  if (!following.length) return {posts: [], newLastVisible: null};
+  if (!following.length) return { posts: [], newLastVisible: null };
+  const blockedUids = await fetchBlockedUids();
 
   const postsRef = collection(db, 'posts');
   const chunks = chunk(following, 10);
@@ -66,13 +67,29 @@ export const fetchPostsByFollowing = async (
 
     const snapshot = await getDocs(q);
     snapshot.forEach(doc => {
-      allPosts.push({id: doc.id, ...doc.data()});
+      const post = { id: doc.id, ...doc.data() };
+      if (!blockedUids.includes(post.uid)) {
+        allPosts.push(post);
+      }
     });
   }
 
   const newLastVisible = allPosts.length > 0 ? allPosts[allPosts.length - 1] : null;
-  return {posts: allPosts, newLastVisible};
+  return { posts: allPosts, newLastVisible };
 };
+
+
+export const fetchBlockedUids = async () => {
+  const currentUserUid = auth().currentUser?.uid;
+  const snapshot = await firestore()
+    .collection('users')
+    .doc(currentUserUid)
+    .collection('blockedUsers')
+    .get();
+
+  return snapshot.docs.map(doc => doc.id); // array of blocked user UIDs
+};
+
 
 const HomeScreen = () => {
   const theme = DarkMode();

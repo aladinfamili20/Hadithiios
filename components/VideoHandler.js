@@ -13,6 +13,7 @@ import DarkMode from './Theme/DarkMode';
 import VideoHeader from './Video/VideoHeader';
 import VideoInteractionScreen from './Video/VideoInteractionScreen';
 import VideoDetailScreen from './Video/VideoDetailScreen';
+import VideosAds from '../screens/Video/VideosAds';
 
 const VideoHandler = ({post}) => {
   const theme = DarkMode();

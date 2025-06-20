@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,24 +11,24 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import DarkMode from '../components/Theme/DarkMode';
-import {useUser} from '../data/Collections/FetchUserData';
+import { useUser } from '../data/Collections/FetchUserData';
 import ProfileAudience from '../components/Profile/ProfileAudience';
 import ProfileBio from '../components/Profile/ProfileBio';
 import ProfileHeaderInfo from '../components/Profile/ProfileHeaderInfo';
 import ProfileBackground from '../components/Profile/ProfileBackground';
 import Video from 'react-native-video';
- import Image from 'react-native-image-progress';
+import Image from 'react-native-image-progress';
 
 const ProfileScreen = () => {
   const user = auth().currentUser;
   const uid = user.uid;
   const theme = DarkMode();
   const navigation = useNavigation();
-  const {userData} = useUser();
+  const { userData } = useUser();
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -70,10 +70,6 @@ const ProfileScreen = () => {
 
     fetchUserData();
   }, []);
-
-
-
-  
 
   // fetching post and videos from firebase firestore
 
@@ -178,13 +174,13 @@ const ProfileScreen = () => {
     setDeleteVideoModalVisible(false);
   };
 
-  const openEditPhotoModal = postId =>{
+  const openEditPhotoModal = postId => {
     setPostIdToEdit(postId);
     setEditPhotoModal(true);
-  }
-  const closeEditPhotoModal = ()=>{
-    setEditPhotoModal(false)
-  }
+  };
+  const closeEditPhotoModal = () => {
+    setEditPhotoModal(false);
+  };
 
   const fetchUserPostsCount = async () => {
     try {
@@ -236,7 +232,8 @@ const ProfileScreen = () => {
             flexDirection: 'row',
             justifyContent: 'center',
             marginVertical: 10,
-          }}>
+          }}
+        >
           <TouchableOpacity
             onPress={() => setSelectedTab('photos')}
             style={{
@@ -245,10 +242,11 @@ const ProfileScreen = () => {
               borderTopLeftRadius: 8,
               borderBottomLeftRadius: 8,
               alignSelf: 'center',
-              alignContent: 'center'
-            }}>
-              {/* <Ionicons name="image-outline" size={24} color={'white'} style={styles(theme.photoIcon)}/> */}
-            <Text style={{color: 'white'}}>Photos</Text>
+              alignContent: 'center',
+            }}
+          >
+            {/* <Ionicons name="image-outline" size={24} color={'white'} style={styles(theme.photoIcon)}/> */}
+            <Text style={{ color: 'white' }}>Photos</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSelectedTab('videos')}
@@ -257,18 +255,17 @@ const ProfileScreen = () => {
               backgroundColor: selectedTab === 'videos' ? 'tomato' : 'gray',
               borderTopRightRadius: 8,
               borderBottomRightRadius: 8,
-            }}>
-           {/* <Ionicons name="camera-outline" size={24} color={'white'}/> */}
+            }}
+          >
+            {/* <Ionicons name="camera-outline" size={24} color={'white'}/> */}
 
-            <Text style={{color: 'white'}}>Videos</Text>
+            <Text style={{ color: 'white' }}>Videos</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles(theme, imageSize).userPhotosLenghts}>
-        <Text style={styles(theme, imageSize).photosLenghts}>
-          {totalPost}
-        </Text>
+        <Text style={styles(theme, imageSize).photosLenghts}>{totalPost}</Text>
         <Text style={styles(theme, imageSize).photosText}> Posts</Text>
       </View>
     </View>
@@ -280,7 +277,8 @@ const ProfileScreen = () => {
         style={[
           styles(theme, imageSize).container,
           styles(theme, imageSize).horizontal,
-        ]}>
+        ]}
+      >
         <ActivityIndicator size="large" color="tomato" />
       </View>
     );
@@ -293,103 +291,115 @@ const ProfileScreen = () => {
         keyExtractor={item => item.id}
         numColumns={3}
         ListHeaderComponent={renderHeader}
-        columnWrapperStyle={{justifyContent: 'space-between'}}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
         removeClippedSubviews={false}
         initialNumToRender={12}
         maxToRenderPerBatch={15}
         windowSize={10}
-        renderItem={({item}) => (
+        renderItem={({ item }) => (
           <View style={styles(theme, imageSize).imageContainer}>
-
-  
-
             <View>
               {selectedTab === 'photos' ? (
-
                 <View>
+                  <TouchableOpacity
+                    style={styles(theme, imageSize).iconButton}
+                    onPress={() => openDeleteModal(item.id)}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={20}
+                      style={styles(theme, imageSize).icon}
+                    />
+                  </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles(theme, imageSize).iconButton}
-              onPress={() => openDeleteModal(item.id)}>
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                style={styles(theme, imageSize).icon}
-              />
-            </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles(theme, imageSize).EditIconButton}
+                    // onPress={() => navigation.navigate('editphoto', {id: item.id})}
 
-             <TouchableOpacity
-              style={styles(theme, imageSize).EditIconButton}
-              // onPress={() => navigation.navigate('editphoto', {id: item.id})}
-              
-               onPress={() => navigation.navigate('editphoto', { image: item.image, caption: item.caption, id: item.id, taggedUsers: item.taggedUser})} >
-              <Ionicons
-                name="create-outline"
-                size={20}
-                style={styles(theme, imageSize).EditIcon}
-              />
-            </TouchableOpacity>
+                    onPress={() =>
+                      navigation.navigate('editphoto', {
+                        image: item.image,
+                        caption: item.caption,
+                        id: item.id,
+                        taggedUsers: item.taggedUser,
+                      })
+                    }
+                  >
+                    <Ionicons
+                      name="create-outline"
+                      size={20}
+                      style={styles(theme, imageSize).EditIcon}
+                    />
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                style={styles(theme).imageContainer}
-                  onPress={() =>
-                    navigation.navigate('postDetail', {id: item.id})
-                  }>
-                  <Image
-                    // style={styles(theme, imageSize).userPhotos}
+                  <TouchableOpacity
+                    style={styles(theme).imageContainer}
+                    onPress={() =>
+                      navigation.navigate('postDetail', { id: item.id })
+                    }
+                  >
+                    <Image
+                      // style={styles(theme, imageSize).userPhotos}
                       style={{
-                      width: imageSize,
-                      height: imageSize,
-                      borderRadius: 8,
-                      backgroundColor: theme === 'dark' ? '#333' : '#eee',
-                      aspectRatio: 1,
-                      flexShrink: 0,
-                    // overflow: 'hidden',
-                  }}
-                    source={{uri: item.image}}
-                    // resizeMode={FastImage.resizeMode.cover}
-                  />
-                </TouchableOpacity>
-
+                        width: imageSize,
+                        height: imageSize,
+                        borderRadius: 8,
+                        backgroundColor: theme === 'dark' ? '#333' : '#eee',
+                        aspectRatio: 1,
+                        flexShrink: 0,
+                        // overflow: 'hidden',
+                      }}
+                      source={{ uri: item.image }}
+                      // resizeMode={FastImage.resizeMode.cover}
+                    />
+                  </TouchableOpacity>
                 </View>
               ) : (
-
                 <View>
+                  <TouchableOpacity
+                    style={styles(theme, imageSize).EditIconButton}
+                    // onPress={() => navigation.navigate('editphoto', {id: item.id})}
 
-               <TouchableOpacity
-              style={styles(theme, imageSize).EditIconButton}
-              // onPress={() => navigation.navigate('editphoto', {id: item.id})}
-              
-               onPress={() => navigation.navigate('editvideos', { video: item.video, caption: item.caption, id: item.id, taggedUsers: item.taggedUser})} >
-              <Ionicons
-                name="create-outline"
-                size={20}
-                style={styles(theme, imageSize).EditIcon}
-              />
-            </TouchableOpacity>
+                    onPress={() =>
+                      navigation.navigate('editvideos', {
+                        video: item.video,
+                        caption: item.caption,
+                        id: item.id,
+                        taggedUsers: item.taggedUser,
+                      })
+                    }
+                  >
+                    <Ionicons
+                      name="create-outline"
+                      size={20}
+                      style={styles(theme, imageSize).EditIcon}
+                    />
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles(theme, imageSize).iconButton}
-                onPress={() => openDeleteVideoModal(item.id)}>
-                <Ionicons
-                  name="trash-outline"
-                  size={20}
-                  style={styles(theme, imageSize).icon}
-                />
-              </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate('videodetails', {id: item.id})
-                  }>
-                  <Video
-                    source={{uri: item.video}}
-                    style={styles(theme, imageSize).userPhotos}
-                    resizeMode="cover"
-                    muted
-                    repeat
-                    paused
-                  />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles(theme, imageSize).iconButton}
+                    onPress={() => openDeleteVideoModal(item.id)}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={20}
+                      style={styles(theme, imageSize).icon}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate('videodetails', { id: item.id })
+                    }
+                  >
+                    <Video
+                      source={{ uri: item.video }}
+                      style={styles(theme, imageSize).userPhotos}
+                      resizeMode="cover"
+                      muted
+                      repeat
+                      paused
+                    />
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -403,15 +413,14 @@ const ProfileScreen = () => {
           </View>
         }
       />
- 
- 
 
-            {/* Delete Modal */}
+      {/* Delete Modal */}
       <Modal
         animationType="slide"
         transparent
         visible={deleteModalVisible}
-        onRequestClose={closeDeleteVideoModal}>
+        onRequestClose={closeDeleteVideoModal}
+      >
         <View style={styles(theme, imageSize).modalContainer}>
           <View style={styles(theme, imageSize).modalContent}>
             <Text style={styles(theme, imageSize).modalText}>
@@ -420,14 +429,16 @@ const ProfileScreen = () => {
             <View style={styles(theme, imageSize).modalButtons}>
               <TouchableOpacity
                 style={styles(theme, imageSize).modalButton}
-                onPress={closeDeleteModal}>
+                onPress={closeDeleteModal}
+              >
                 <Text style={styles(theme, imageSize).modalButtonText}>
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles(theme, imageSize).modalButtonRed}
-                onPress={() => deletePost(postIdToDelete)}>
+                onPress={() => deletePost(postIdToDelete)}
+              >
                 <Text style={styles(theme, imageSize).modalButtonTextBold}>
                   Delete
                 </Text>
@@ -436,12 +447,13 @@ const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
-{/* Video modal */}
+      {/* Video modal */}
       <Modal
         animationType="slide"
         transparent
         visible={deleteVideoModalVisible}
-        onRequestClose={closeDeleteVideoModal}>
+        onRequestClose={closeDeleteVideoModal}
+      >
         <View style={styles(theme, imageSize).modalContainer}>
           <View style={styles(theme, imageSize).modalContent}>
             <Text style={styles(theme, imageSize).modalText}>
@@ -450,14 +462,16 @@ const ProfileScreen = () => {
             <View style={styles(theme, imageSize).modalButtons}>
               <TouchableOpacity
                 style={styles(theme, imageSize).modalButton}
-                onPress={closeDeleteVideoModal}>
+                onPress={closeDeleteVideoModal}
+              >
                 <Text style={styles(theme, imageSize).modalButtonText}>
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles(theme, imageSize).modalButtonRed}
-                onPress={() => deleteVideo(postIdToDelete)}>
+                onPress={() => deleteVideo(postIdToDelete)}
+              >
                 <Text style={styles(theme, imageSize).modalButtonTextBold}>
                   Delete
                 </Text>
@@ -477,7 +491,6 @@ const styles = (theme, imageSize) =>
     ProfileContainer: {
       flex: 1,
       backgroundColor: theme === 'dark' ? '#121212' : '#eee',
-
     },
     profileContents: {
       margin: 10,
@@ -492,12 +505,12 @@ const styles = (theme, imageSize) =>
     },
     imageContainer: {
       width: imageSize,
- 
-    borderRadius: 20,
-    overflow: 'hidden', // critical!
-    margin: 2,
-    position: 'relative',
-  },
+
+      borderRadius: 20,
+      overflow: 'hidden', // critical!
+      margin: 2,
+      position: 'relative',
+    },
     // imageContainer: {
     // },
     iconButton: {
@@ -512,8 +525,8 @@ const styles = (theme, imageSize) =>
     icon: {
       color: '#fff',
     },
-// Edit photo icon
-      EditIconButton: {
+    // Edit photo icon
+    EditIconButton: {
       position: 'absolute',
       top: 6,
       left: 6,
@@ -529,7 +542,7 @@ const styles = (theme, imageSize) =>
       alignSelf: 'center',
       textAlign: 'center',
       alignContent: 'center',
-      alignItems: 'center'
+      alignItems: 'center',
     },
     container: {
       flex: 1,
