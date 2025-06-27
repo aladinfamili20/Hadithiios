@@ -16,6 +16,7 @@ import {CommonActions, useNavigation, useRoute} from '@react-navigation/native';
 import {auth, firestore} from '../../data/Firebase';
 import UserCollectionFech from '../UserCollectionFech';
 import {useUser} from '../../data/Collections/FetchUserData';
+import PostInteranctionsScreen from '../Post/PostInteranctionsScreen';
 
 const CommentSection = () => {
   const theme = DarkMode();
@@ -113,9 +114,12 @@ const CommentSection = () => {
       }),
     );
   };
+  
   return (
 <View>
   {/* Comment Section */}
+{postDetails && <PostInteranctionsScreen post={postDetails} />}
+
   {postDetails && (
     <View style={styles(theme).commenterMainContainer}>
       {postDetails.comments?.length > 0 ? (
@@ -123,7 +127,8 @@ const CommentSection = () => {
           <View key={index} style={styles(theme).commenterContainer}>
             <TouchableOpacity onPress={() => navigateToProfile(comment.uid)}>
               <Image
-                source={{ uri: comment.profileImage }}
+              source={comment.profileImage ? {uri: comment.profileImage}   : require('../../assets/thumblogo.png')}
+
                 style={styles(theme).commentProfileImage}
               />
             </TouchableOpacity>
@@ -143,7 +148,8 @@ const CommentSection = () => {
                     <View key={replyIndex} style={styles(theme).replyContainer}>
                       <TouchableOpacity onPress={() => navigateToProfile(reply.uid)}>
                         <Image
-                          source={{ uri: reply.profileImage }}
+                            source={reply.profileImage ? {uri: reply.profileImage}   : require('../../assets/thumblogo.png')}
+
                           style={styles(theme).replyProfileImage}
                         />
                       </TouchableOpacity>
@@ -193,6 +199,7 @@ const CommentSection = () => {
       ) : (
         <Text style={styles(theme).noComment}>No comments yet, be the first!</Text>
       )}
+
     </View>
   )}
 </View>

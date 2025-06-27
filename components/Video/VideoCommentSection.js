@@ -2,10 +2,14 @@
 import {
   Dimensions,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
@@ -15,6 +19,7 @@ import {CommonActions, useNavigation, useRoute} from '@react-navigation/native';
 import { useUser } from '../../data/Collections/FetchUserData';
 import { auth, firestore } from '../../data/Firebase';
 import UserCollectionFech from '../UserCollectionFech';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const VideoCommentSection = () => {
   const theme = DarkMode();
@@ -113,88 +118,103 @@ const VideoCommentSection = () => {
     );
   };
   return (
- <View>
-   {/* Comment Section */}
-   {postDetails && (
-     <View style={styles(theme).commenterMainContainer}>
-       {postDetails.comments?.length > 0 ? (
-         postDetails.comments.map((comment, index) => (
-           <View key={index} style={styles(theme).commenterContainer}>
-             <TouchableOpacity onPress={() => navigateToProfile(comment.uid)}>
-               <Image
-                 source={{ uri: comment.profileImage }}
-                 style={styles(theme).commentProfileImage}
-               />
-             </TouchableOpacity>
- 
-             <View style={styles(theme).commentContent}>
-               <TouchableOpacity onPress={() => navigateToProfile(comment.uid)}>
-                 <Text style={styles(theme).commentDisplayName}>
-                   {comment.displayName} {comment.lastName}
-                 </Text>
-               </TouchableOpacity>
-               <Text style={styles(theme).commentText}>{comment.comment}</Text>
- 
-               {/* Replies */}
-               {comment.replies?.length > 0 && (
-                 <View style={styles(theme).repliesContainer}>
-                   {comment.replies.map((reply, replyIndex) => (
-                     <View key={replyIndex} style={styles(theme).replyContainer}>
-                       <TouchableOpacity onPress={() => navigateToProfile(reply.uid)}>
-                         <Image
-                           source={{ uri: reply.profileImage }}
-                           style={styles(theme).replyProfileImage}
-                         />
-                       </TouchableOpacity>
-                       <View style={styles(theme).replyContent}>
-                         <TouchableOpacity onPress={() => navigateToProfile(reply.uid)}>
-                           <Text style={styles(theme).replyDisplayName}>
-                             {reply.displayName} {reply.lastName}
-                           </Text>
-                         </TouchableOpacity>
-                         <Text style={styles(theme).commentText}>{reply.reply}</Text>
-                       </View>
-                     </View>
-                   ))}
-                 </View>
-               )}
- 
-               {/* Reply Button */}
-               <TouchableOpacity
-                 onPress={() => setReplyingToCommentId(comment.id)}
-                 style={styles(theme).replyButton}>
-                 <Text style={styles(theme).replyButtonText}>Reply</Text>
-               </TouchableOpacity>
- 
-               {/* Reply Input */}
-               {replyingToCommentId === comment.id && (
-                 <View style={styles(theme).replyInputContainer}>
-                   <TextInput
-                     style={styles(theme).replyInput}
-                     placeholder="Write a reply..."
-                     placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
-                     value={replies[comment.id] || ''}
-                     onChangeText={text =>
-                       setReplies(prev => ({
-                         ...prev,
-                         [comment.id]: text,
-                       }))
-                     }
-                   />
-                   <TouchableOpacity onPress={() => addReplyToFirebase(comment.id)}>
-                     <Ionicons name="send" size={20} color="#FF4500" />
-                   </TouchableOpacity>
-                 </View>
-               )}
-             </View>
-           </View>
-         ))
-       ) : (
-         <Text style={styles(theme).noComment}>No comments yet, be the first!</Text>
-       )}
-     </View>
-   )}
- </View>
+
+    <KeyboardAwareScrollView
+    style={styles(theme).commenterMainContainer}
+    contentContainerStyle={{ paddingBottom: 100 }}
+    enableOnAndroid
+    extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
+    keyboardShouldPersistTaps="handled"
+  >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View>
+        {postDetails && (
+          <View>
+            {postDetails.comments?.length > 0 ? (
+              postDetails.comments.map((comment, index) => (
+                <View key={index} style={styles(theme).commenterContainer}>
+                  <TouchableOpacity onPress={() => navigateToProfile(comment.uid)}>
+                    <Image
+                         source={comment.profileImage ? {uri: comment.profileImage}   : require('../../assets/thumblogo.png')}
+
+                      style={styles(theme).commentProfileImage}
+                    />
+                  </TouchableOpacity>
+
+                  <View style={styles(theme).commentContent}>
+                    <TouchableOpacity onPress={() => navigateToProfile(comment.uid)}>
+                      <Text style={styles(theme).commentDisplayName}>
+                        {comment.displayName} {comment.lastName}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles(theme).commentText}>{comment.comment}</Text>
+
+                    {/* Replies */}
+                    {comment.replies?.length > 0 && (
+                      <View style={styles(theme).repliesContainer}>
+                        {comment.replies.map((reply, replyIndex) => (
+                          <View key={replyIndex} style={styles(theme).replyContainer}>
+                            <TouchableOpacity onPress={() => navigateToProfile(reply.uid)}>
+                              <Image
+                              source={reply.profileImage ? {uri: reply.profileImage}   : require('../../assets/thumblogo.png')}
+
+                                 style={styles(theme).replyProfileImage}
+                              />
+                            </TouchableOpacity>
+                            <View style={styles(theme).replyContent}>
+                              <TouchableOpacity onPress={() => navigateToProfile(reply.uid)}>
+                                <Text style={styles(theme).replyDisplayName}>
+                                  {reply.displayName} {reply.lastName}
+                                </Text>
+                              </TouchableOpacity>
+                              <Text style={styles(theme).commentText}>{reply.reply}</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Reply Button */}
+                    <TouchableOpacity
+                      onPress={() => setReplyingToCommentId(comment.id)}
+                      style={styles(theme).replyButton}
+                    >
+                      <Text style={styles(theme).replyButtonText}>Reply</Text>
+                    </TouchableOpacity>
+
+                    {/* Reply Input */}
+                    {replyingToCommentId === comment.id && (
+                      <View style={styles(theme).replyInputContainer}>
+                        <TextInput
+                          style={styles(theme).replyInput}
+                          placeholder="Write a reply..."
+                          placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
+                          value={replies[comment.id] || ''}
+                          onChangeText={text =>
+                            setReplies(prev => ({
+                              ...prev,
+                              [comment.id]: text,
+                            }))
+                          }
+                        />
+                        <TouchableOpacity onPress={() => addReplyToFirebase(comment.id)}>
+                          <Ionicons name="send" size={20} color="#FF4500" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Text style={styles(theme).noComment}>No comments yet, be the first!</Text>
+            )}
+          </View>
+        )}
+      </View>
+    </TouchableWithoutFeedback>
+  </KeyboardAwareScrollView>
+
   )
 }
 

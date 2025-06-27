@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,15 @@ import {
   Image,
   Appearance,
   ActivityIndicator,
+  KeyboardAvoidingViewBase,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import DarkMode from '../components/Theme/DarkMode';
 
 const LoginScreen = () => {
@@ -60,7 +65,8 @@ const LoginScreen = () => {
       console.error(error);
       setLoginError('Error logging in, incorrent email or password');
       // let message = 'Something went wrong!' + 'please check your email or password.';
-      let message = 'Something went wrong!' + 'please check your email or password.';
+      let message =
+        'Something went wrong!' + 'please check your email or password.';
       if (error.code === 'auth/user-not-found') {
         message = 'No user found with this email.';
       } else if (error.code === 'auth/wrong-password') {
@@ -83,75 +89,83 @@ const LoginScreen = () => {
   }
 
   return (
-    <View style={styles(theme).container}>
-
-      <View>
-        <Image
-          source={require('../assets/Logo+name2.png')}
-          style={styles(theme).logo}
-        />
-      </View>
-
-      <Text style={styles(theme).title}>Login to your Account</Text>
-      <View style={styles(theme).inputField}>
-        <TextInput
-          style={styles(theme).email}
-          placeholder="Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          autoFocus={true}
-          onChangeText={text => setEmail(text)}
-          value={email}
-          placeholderTextColor="#888"
-          returnKeyType="next"
-         />
-        <View style={styles(theme).passwordContainer}>
-          <TextInput
-            style={styles(theme).password}
-            placeholder="Password"
-            autoCapitalize="none"
-            textContentType="password"
-            secureTextEntry={!isPasswordVisible}
-            onChangeText={text => setPassword(text)}
-            placeholderTextColor="#888"
-            value={password}
-          />
-          <TouchableOpacity
-            onPress={togglePasswordVisibility}
-            style={styles(theme).iconContainer}>
-            <Ionicons
-              name={isPasswordVisible ? 'eye-off' : 'eye'}
-              size={24}
-              color="grey"
+    <KeyboardAvoidingView
+      style={styles(theme).container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles(theme).container}>
+          <View>
+            <Image
+              source={require('../assets/Logo+name2.png')}
+              style={styles(theme).logo}
             />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles(theme).errorMessage}>{loginError}</Text>
-      </View>
+          </View>
 
-      <TouchableOpacity
-        style={[
-          styles(theme).button,
-          isLoading && styles(theme).buttonDisabled,
-        ]}
-        onPress={handleLogin}
-        disabled={isLoading}>
-        <Text style={styles(theme).buttonText}>
-          {isLoading ? 'Logging In...' : 'Login'}
-        </Text>
-      </TouchableOpacity>
-
-       <View style={styles(theme).initialization}>
-              <Text style={styles(theme).quetion}>Already have an account? </Text>
+          <Text style={styles(theme).title}>Login to your Account</Text>
+          <View style={styles(theme).inputField}>
+            <TextInput
+              style={styles(theme).email}
+              placeholder="Email"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              autoFocus={true}
+              onChangeText={text => setEmail(text)}
+              value={email}
+              placeholderTextColor="#888"
+              returnKeyType="next"
+            />
+            <View style={styles(theme).passwordContainer}>
+              <TextInput
+                style={styles(theme).password}
+                placeholder="Password"
+                autoCapitalize="none"
+                textContentType="password"
+                secureTextEntry={!isPasswordVisible}
+                onChangeText={text => setPassword(text)}
+                placeholderTextColor="#888"
+                value={password}
+              />
               <TouchableOpacity
-                style={styles(theme).link}
-                onPress={() => navigation.navigate('signup')}>
-                <Text style={styles(theme).linkText}>Sign up</Text>
+                onPress={togglePasswordVisibility}
+                style={styles(theme).iconContainer}
+              >
+                <Ionicons
+                  name={isPasswordVisible ? 'eye-off' : 'eye'}
+                  size={24}
+                  color="grey"
+                />
               </TouchableOpacity>
             </View>
+            <Text style={styles(theme).errorMessage}>{loginError}</Text>
+          </View>
 
-      {/* <View style={styles(theme).legalContainer}>
+          <TouchableOpacity
+            style={[
+              styles(theme).button,
+              isLoading && styles(theme).buttonDisabled,
+            ]}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles(theme).buttonText}>
+              {isLoading ? 'Logging In...' : 'Login'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles(theme).initialization}>
+            <Text style={styles(theme).quetion}>Already have an account? </Text>
+            <TouchableOpacity
+              style={styles(theme).link}
+              onPress={() => navigation.navigate('signup')}
+            >
+              <Text style={styles(theme).linkText}>Sign up</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* <View style={styles(theme).legalContainer}>
         <Text style={styles(theme).legalMessage}>
           By logging in, you agree to Hadithi
         </Text>
@@ -167,15 +181,17 @@ const LoginScreen = () => {
           </TouchableOpacity>
         </View>
       </View> */}
-    </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = theme =>
   StyleSheet.create({
-     container: {
+    container: {
       flex: 1,
-      padding: 20,
+      padding: 10,
       justifyContent: 'center',
       backgroundColor: theme === 'dark' ? '#000' : '#fff',
     },
@@ -192,7 +208,7 @@ const styles = theme =>
       resizeMode: 'contain',
       alignSelf: 'center',
       marginBottom: 30,
-     },
+    },
     inputField: {
       marginBottom: 20,
     },
@@ -246,7 +262,7 @@ const styles = theme =>
     linkText: {
       color: '#ff6347',
       // fontSize: 16,
-      marginBottom:15,
+      marginBottom: 15,
       fontWeight: 'bold',
     },
     legalContainer: {
@@ -276,16 +292,15 @@ const styles = theme =>
       alignItems: 'center',
       backgroundColor: theme === 'dark' ? '#000' : '#fff',
     },
-    initialization:{
+    initialization: {
       flexDirection: 'row',
-      justifyContent:'center',
+      justifyContent: 'center',
       alignContent: 'center',
       alignItems: 'center',
       alignSelf: 'center',
     },
     quetion: {
-            color: theme === 'dark' ? '#aaa' : '#555',
-
+      color: theme === 'dark' ? '#aaa' : '#555',
     },
   });
 

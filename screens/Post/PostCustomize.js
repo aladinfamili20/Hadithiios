@@ -9,6 +9,10 @@ import {
   ActivityIndicator,
   ScrollView,
   FlatList,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import React, {useState, useEffect, useRef} from 'react';
 import firestore from '@react-native-firebase/firestore';
@@ -19,6 +23,7 @@ import RNModal from 'react-native-modal';
 import { auth } from '../../data/Firebase';
 import { useUser } from '../../data/Collections/FetchUserData';
 import DarkMode from '../../components/Theme/DarkMode';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 const PostCustomize = () => {
   const {image} = useRoute().params;
 
@@ -69,11 +74,11 @@ const PostCustomize = () => {
     try {
       const {displayName, profileImage, lastName} = profileData;
 
-      if (!displayName || !profileImage || !lastName) {
-        console.log('User profile data is incomplete.');
-        setGetError('User profile data is incomplete.');
-        return;
-      }
+      // if (!displayName || !profileImage || !lastName) {
+      //   console.log('User profile data is incomplete.');
+      //   setGetError('User profile data is incomplete.');
+      //   return;
+      // }
       const today = new Date();
       const date = today.toDateString();
       const Hours = today.toLocaleTimeString([], {
@@ -182,7 +187,22 @@ const PostCustomize = () => {
   }, []);
 
   return (
-    <View style={styles(theme).container}>
+    
+    <KeyboardAvoidingView
+ style={styles(theme).container}
+  behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <KeyboardAwareScrollView
+      onPress={Keyboard.dismiss}
+      contentContainerStyle={styles(theme).scrollViewContainer}
+  keyboardShouldPersistTaps="handled"
+  enableOnAndroid={true}
+  extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
+  showsVerticalScrollIndicator={false}
+  style={{ flex: 1 }}
+      >
+        <View style={styles(theme).container}>
       <ScrollView contentContainerStyle={styles(theme).scrollViewContainer}>
         <View style={styles(theme).header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -306,6 +326,8 @@ const PostCustomize = () => {
 
       <Text style={styles(theme).getError}>{getError}</Text>
     </View>
+      </KeyboardAwareScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

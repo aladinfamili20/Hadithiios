@@ -84,7 +84,8 @@ const About = ({ AboutCloseModal }) => {
         {updateData && (
           <View style={{ flexDirection: 'row' }}>
             <Image
-              source={{ uri: updateData.profileImage }}
+              source={updateData.profileImage ? {uri: updateData.profileImage}   : require('../../assets/thumblogo.png')}
+
               style={styles(theme).profImage}
             />
             <View>

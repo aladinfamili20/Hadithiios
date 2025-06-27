@@ -220,7 +220,7 @@ const ProfileScreen = () => {
     <View style={styles(theme, imageSize).profileContainer}>
       <ProfileBackground />
       <View style={styles(theme, imageSize).profileContents}>
-        <ProfileHeaderInfo />
+        <ProfileHeaderInfo  />
         <ProfileBio />
         <ProfileAudience
           theme={theme}

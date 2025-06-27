@@ -4,11 +4,15 @@
 import {
   Alert,
     Appearance,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
   } from "react-native";
   import React, { useEffect, useState } from "react";
@@ -17,6 +21,8 @@ import {
    import {Timestamp  } from "firebase/firestore";
    import auth from '@react-native-firebase/auth';
    import firestore from '@react-native-firebase/firestore';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import DarkMode from "../../components/Theme/DarkMode";
 
   const FAQScreen = ({ question, answer, theme }) => {
        
@@ -37,17 +43,7 @@ import {
   };
 
   const Help = () => {
-    const [theme, setTheme] = useState(Appearance.getColorScheme());
-      
-    useEffect(() => {
-      const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-        setTheme(colorScheme);
-      });
-
-      return () => {
-        subscription.remove();
-      };
-    }, []);
+   const theme = DarkMode();
 
     const user = auth().currentUser;
     const uid = user?.uid;
@@ -147,59 +143,69 @@ import {
     ];
 
     return (
-      <ScrollView style={styles(theme).container}>
-        <View style={styles(theme).helpConent}>
-          <Text style={styles(theme).h1}>FAQs</Text>
-          <Text style={styles(theme).h2}>Common Topics</Text>
-        </View>
-        {faqs.map((faq, index) => (
-          <FAQScreen key={index} question={faq.question} theme={theme}  answer={faq.answer} />
-        ))}
-        <View>
-          <Text style={styles(theme).h1}>Contact Support</Text>
-          <Text style={styles(theme).h2}>Email: hadithisocial@gmail.com</Text>
+<KeyboardAwareScrollView
+    style={styles(theme).container}
+    contentContainerStyle={{ paddingBottom: 60 }}
+    enableOnAndroid={true}
+    extraScrollHeight={Platform.OS === 'ios' ? 90 : 20}
+    keyboardShouldPersistTaps="handled"
+  >
+    <View style={styles(theme).helpConent}>
+      <Text style={styles(theme).h1}>FAQs</Text>
+      <Text style={styles(theme).h2}>Common Topics</Text>
+    </View>
 
-          <Text style={styles(theme).h1}>Community Standards and legal policies.
-          </Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Terms of Service")}
-          >
-            <Text style={[styles(theme).h2, styles(theme).terms]}>Terms of Service</Text>
-          </TouchableOpacity>
+    {faqs.map((faq, index) => (
+      <FAQScreen
+        key={index}
+        question={faq.question}
+        theme={theme}
+        answer={faq.answer}
+      />
+    ))}
 
-          <TouchableOpacity onPress={() => navigation.navigate("Privacy Policy")}>
-            <Text style={[styles(theme).h2, styles(theme).terms]}>Privacy Policy</Text>
-          </TouchableOpacity>
+    <View>
+      <Text style={styles(theme).h1}>Contact Support</Text>
+      <Text style={styles(theme).h2}>Email: hadithisocial@gmail.com</Text>
 
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Community Guidelines")}
-          >
-            <Text style={[styles(theme).h2, styles(theme).terms]}>Community Guidelines</Text>
-          </TouchableOpacity>
-        </View>
+      <Text style={styles(theme).h1}>Community Standards and legal policies.</Text>
 
-        <View style={styles(theme).feedbackContainer}>
-          <Text style={styles(theme).h1}>Feedback</Text>
-          <Text style={styles(theme).h2}>
-            Feedback on the app, report bugs, suggest features, or requests your data to be deleted.
-          </Text>
-          <TextInput
-            placeholder="Type here"
-            value={feedback}
-            onChangeText={(text) => setFeedback(text)}
-            editable
-            numberOfLines={3}
-            multiline
-            style={styles(theme).feedbackInput}
-            onSubmitEditing={HandleFeedback}
-            placeholderTextColor={'#888'}
-          />
+      <TouchableOpacity onPress={() => navigation.navigate("Terms of Service")}>
+        <Text style={[styles(theme).h2, styles(theme).terms]}>Terms of Service</Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity onPress={HandleFeedback}>
-            <Text style={styles(theme).sfButton}>Submit Feedback</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      <TouchableOpacity onPress={() => navigation.navigate("Privacy Policy")}>
+        <Text style={[styles(theme).h2, styles(theme).terms]}>Privacy Policy</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate("Community Guidelines")}>
+        <Text style={[styles(theme).h2, styles(theme).terms]}>Community Guidelines</Text>
+      </TouchableOpacity>
+    </View>
+
+    <View style={styles(theme).feedbackContainer}>
+      <Text style={styles(theme).h1}>Feedback</Text>
+      <Text style={styles(theme).h2}>
+        Feedback on the app, report bugs, suggest features, or request your data to be deleted.
+      </Text>
+
+      <TextInput
+        placeholder="Type here"
+        value={feedback}
+        onChangeText={setFeedback}
+        editable
+        numberOfLines={3}
+        multiline
+        style={styles(theme).feedbackInput}
+        onSubmitEditing={HandleFeedback}
+        placeholderTextColor={'#888'}
+      />
+
+      <TouchableOpacity onPress={HandleFeedback}>
+        <Text style={styles(theme).sfButton}>Submit Feedback</Text>
+      </TouchableOpacity>
+    </View>
+  </KeyboardAwareScrollView>
     );
   };
 

@@ -23,15 +23,11 @@ const FollowUsers = () => {
   const uid = user?.uid;
 
   const [loading, setLoading] = useState(true);
-  const [profileData, setProfileData] = useState(null);
-  const [postData, setPostData] = useState([]);
+   const [postData, setPostData] = useState([]);
   const [getError, setGetError] = useState('');
 
   const navigation = useNavigation();
-
-  useEffect(() => {
-    setProfileData(userData);
-  }, [userData]);
+ 
 
   const navigateToProfile = userId => {
     if (!userId) {
@@ -59,10 +55,18 @@ const FollowUsers = () => {
         displayName = '',
         lastName = '',
         profileImage = '',
-      } = profileData || {};
+      } = userData || {};
+
+      
 
       batch.update(currentUserRef, {
-        following: firestore.FieldValue.arrayUnion(targetUserId),
+        following: firestore.FieldValue.arrayUnion({
+          uid: targetUserId,
+          displayName,
+          lastName,
+          profileImage,
+           timestamp: Timestamp.now(),
+        }),
       });
 
       batch.update(targetUserRef, {
@@ -104,7 +108,7 @@ const FollowUsers = () => {
         setLoading(true);
         const snapshot = await firestore()
           .collection('profileUpdate')
-          .orderBy('createdAt', 'desc')
+          .orderBy('updatedAt', 'desc')
           .get();
 
         const users = snapshot.docs.map(doc => ({
@@ -142,7 +146,9 @@ const FollowUsers = () => {
               onPress={() => navigateToProfile(follow.uid)}
               style={{flexDirection: 'row', alignItems: 'center'}}>
               <Image
-                source={{uri: follow.profileImage || 'https://placehold.co/50'}}
+                // source={{uri: follow.profileImage || 'https://placehold.co/50'}}
+                source={follow.profileImage ? {uri: follow.profileImage}   : require('../assets/thumblogo.png')}
+
                 style={themedStyles.image}
               />
               <Text style={themedStyles.displayName}>

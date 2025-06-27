@@ -10,6 +10,7 @@ import {
   StyleSheet,
   // Image,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -19,6 +20,8 @@ import DarkMode from '../components/Theme/DarkMode';
 import Image from 'react-native-image-progress';
 // import ProgressBar from 'react-native-progress/Bar';
 
+const PAGE_SIZE = 15;
+
 const SearchScreen = () => {
   const theme = DarkMode();
   const [loading, setIsLoading] = useState(false);
@@ -26,6 +29,10 @@ const SearchScreen = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [postData, setPostData] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  const [lastPostDoc, setLastPostDoc] = useState(null);
+const [refreshing, setRefreshing] = useState(false);
 
   const navigation = useNavigation();
 
@@ -94,29 +101,44 @@ const SearchScreen = () => {
     }, 400); // debounce time in ms
   }, [searchQuery]);
 
+  const fetchPosts = async (loadMore = false) => {
+    if (fetchingMore || !hasMorePosts) return;
+ 
+    setFetchingMore(true);
+    const postRef = firestore()
+      .collection('posts')
+      .orderBy('createdAt', 'desc');
+
+    try {
+      const snapshot = loadMore
+        ? await postRef.startAfter(lastPostDoc).limit(PAGE_SIZE).get()
+        : await postRef.limit(PAGE_SIZE).get();
+
+      const newDocs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      setPostData(prev => (loadMore ? [...prev, ...newDocs] : newDocs));
+      setLastPostDoc(snapshot.docs[snapshot.docs.length - 1]);
+
+      if (snapshot.docs.length < PAGE_SIZE) setHasMorePosts(false);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setFetchingMore(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPostData = async () => {
-      try {
-        setIsLoading(true);
-        const snapshot = await firestore()
-          .collection('posts')
-          .orderBy('createdAt', 'desc')
-          .get();
-
-        const documents = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPostData(documents);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        setIsLoading(false);
-      }
-    };
-
-    fetchPostData();
+    fetchPosts();
   }, []);
+ 
+
+  const onRefresh = async () => {
+  setRefreshing(true);
+  setHasMorePosts(true);
+  setLastPostDoc(null);
+  await fetchPosts(false); // re-fetch from beginning
+  setRefreshing(false);
+};
 
   return (
     <View style={styles(theme).searchContainer}>
@@ -151,7 +173,7 @@ const SearchScreen = () => {
         </View>
       </View>
 
-      {loading ? (
+      {loading || isLoadingUsers ? (
         <View style={[styles(theme).container1, styles(theme).horizontal]}>
           <ActivityIndicator size="large" color="tomato" />
         </View>
@@ -164,10 +186,8 @@ const SearchScreen = () => {
           keyExtractor={(item, index) =>
             item.id ? item.id.toString() : index.toString()
           }
-          numColumns={searchQuery.trim().length === 0 ? 3 : 1} // Example dynamic columns
-          key={
-            searchQuery.trim().length === 0 ? 'threeColumns' : 'singleColumn'
-          } // Force re-render when changing column count
+          numColumns={3}
+          key={'threeColumns'}
           renderItem={({ item }) => (
             <View style={styles(theme).imageContainer}>
               <TouchableOpacity
@@ -176,10 +196,7 @@ const SearchScreen = () => {
                 }
               >
                 <Image
-                  // indicator={ProgressBar}
-
                   source={{ uri: item.image }}
-                  // style={styles(theme).userPhotos}
                   style={{
                     width: '100%',
                     height: 130,
@@ -189,6 +206,18 @@ const SearchScreen = () => {
               </TouchableOpacity>
             </View>
           )}
+          onEndReached={() => fetchPosts(true)}
+          onEndReachedThreshold={0.1}
+          refreshControl={
+  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+}
+          ListFooterComponent={
+            fetchingMore && (
+              <View style={{ padding: 10 }}>
+                <ActivityIndicator size="small" color="tomato" />
+              </View>
+            )
+          }
         />
       ) : isLoadingUsers ? (
         <View style={[styles(theme).container1, styles(theme).horizontal]}>

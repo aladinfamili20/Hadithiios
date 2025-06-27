@@ -1,56 +1,55 @@
 /* eslint-disable react-native/no-inline-styles */
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
+  View,
+  Text,
+  TouchableOpacity,
   Image,
   ImageBackground,
   ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+  Alert,
+  ActivityIndicator,
+  StyleSheet
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import DarkMode from '../Theme/DarkMode';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import FecthUserProfile from '../FetchUserProfile';
-import { auth, firestore } from '../../data/Firebase';
 import RNModal from 'react-native-modal';
-import { useUser } from '../../data/Collections/FetchUserData';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
+import DarkMode from '../Theme/DarkMode';
+import FecthUserProfile from '../FetchUserProfile';
+ 
+const REPORT_CATEGORIES = [
+  'Suicide',
+  'Self-injury',
+  'Violence or hate',
+  'Promoting drugs or restricted items',
+  'Nudity or sexual activity',
+  'Scam or fraud',
+];
 
-const ProfileHeader = ({ post }) => {
+const ProfileHeader = ({ userData }) => {
   const route = useRoute();
   const { uid } = route.params;
+
   const theme = DarkMode();
   const navigation = useNavigation();
-  const { userData } = useUser();
+  const themedStyles = useMemo(() => styles(theme), [theme]);
+
   const { userprofile, loading } = FecthUserProfile('profileUpdate', uid);
-  const [publicProfile, setPublicProfile] = useState(null);
+
   const [reportAccount, setReportAccount] = useState(false);
-  const [getUserInfo, setGetUserInfo] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [getError, setGetError] = useState('');
-  const currentUser = auth().currentUser;
 
-  useEffect(() => {
-    setPublicProfile(userData);
-  }, [userData]);
+   const getUserInfo = userprofile;
+const publicProfile = userprofile;
 
-  useEffect(() => {
-    setGetUserInfo(userprofile);
-  }, [userprofile]);
-
-  // ✅ Block User Function
+  // Block User Handler
   const handleBlockUser = async () => {
     try {
-      const today = new Date();
-      const date = today.toDateString();
-      const hours = today.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const blockedDate = today.toLocaleDateString();
+      const now = new Date();
+      const currentUser = auth().currentUser;
 
       await firestore()
         .collection('users')
@@ -58,14 +57,14 @@ const ProfileHeader = ({ post }) => {
         .collection('blockedUsers')
         .doc(uid)
         .set({
-          blockedAt: new Date().toISOString(),
+          blockedAt: now.toISOString(),
           blockedUid: uid,
           displayName: publicProfile?.displayName,
           lastName: publicProfile?.lastName,
           profileimage: publicProfile?.profileImage,
-          date,
-          hours,
-          blockedDate,
+          date: now.toDateString(),
+          hours: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          blockedDate: now.toLocaleDateString(),
         });
 
       Alert.alert('User Blocked');
@@ -76,8 +75,7 @@ const ProfileHeader = ({ post }) => {
     }
   };
 
-  // Report account
-
+  // Report Handler
   const generateReportPostUniqueId = () => {
     return `id_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
   };
@@ -85,135 +83,130 @@ const ProfileHeader = ({ post }) => {
   const handleReportAccount = async () => {
     try {
       const reporter = auth().currentUser;
-      const today = new Date();
-      const date = today.toDateString();
-      const hour = today.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const time = today.toLocaleDateString();
+      const now = new Date();
       const reportId = generateReportPostUniqueId();
 
-      const { displayName, lastName, profileImage } = userData; // current user
+      const { displayName, lastName, profileImage } = userData;
       const {
         displayName: reportedName,
         lastName: reportedLastName,
         profileImage: reportedImage,
       } = getUserInfo || {};
 
-      const reportRef = firestore().collection('reportAccounts').doc(uid); // uid of the user being reported
+      await firestore()
+        .collection('reportAccounts')
+        .doc(uid)
+        .set(
+          {
+            accountReports: firestore.FieldValue.arrayUnion({
+              reportId,
+              date: now.toDateString(),
+              hour: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              time: now.toLocaleDateString(),
+              selectedCategory,
+              reportedAccountUID: uid,
+              reportedUserDisplayName: reportedName,
+              reportedUserLastName: reportedLastName,
+              reportedUserProfileImage: reportedImage,
+              reportingUserUID: reporter?.uid,
+              reportingUserDisplayName: displayName,
+              reportingUserLastName: lastName,
+              reportingUserProfileImage: profileImage,
+            }),
+          },
+          { merge: true }
+        );
 
-      await reportRef.set(
-        {
-          accountReports: firestore.FieldValue.arrayUnion({
-            reportId,
-            date,
-            hour,
-            time,
-            selectedCategory,
-            reportedAccountUID: uid,
-            reportedUserDisplayName: reportedName,
-            reportedUserLastName: reportedLastName,
-            reportedUserProfileImage: reportedImage,
-            reportingUserUID: reporter?.uid,
-            reportingUserDisplayName: displayName,
-            reportingUserLastName: lastName,
-            reportingUserProfileImage: profileImage,
-          }),
-        },
-        { merge: true },
-      );
-
-      console.log('Account reported successfully');
       Alert.alert('Reported', 'The account has been reported.');
       setReportAccount(false);
       setSelectedCategory('');
     } catch (error) {
       console.error('Error reporting account:', error);
       setGetError(
-        'There was an error while trying to report this account. Please try again later.',
+        'There was an error while trying to report this account. Please try again later.'
       );
     }
   };
 
-  function handleReportCategoryPress(category) {
+  const handleReportCategoryPress = useCallback((category) => {
     setSelectedCategory(category);
-  }
+  }, []);
 
   return (
     <View>
       {loading ? (
         <ActivityIndicator
           size={25}
-          color={'tomato'}
-          style={styles(theme).ActivityIndicator}
+          color="tomato"
+          style={themedStyles.ActivityIndicator}
         />
       ) : (
         <>
           <ImageBackground
-            source={{ uri: publicProfile?.backgroundImage }}
-            style={styles(theme).backimage}
+            source={
+    publicProfile?.backgroundImage
+      ? { uri: publicProfile.backgroundImage }
+      : require('../../assets/thumbpng.png')
+  }
+              // source={require('../../assets/thumbpng.png')}
+            style={themedStyles.backimage}
           >
-            <View style={styles(theme).headerIcons}>
+            <View style={themedStyles.headerIcons}>
               <TouchableOpacity
-                style={styles(theme).arrowBackIcon}
+                style={themedStyles.arrowBackIcon}
                 onPress={() => navigation.goBack()}
               >
                 <Ionicons
                   name="chevron-back-outline"
                   size={24}
                   color={theme === 'dark' ? '#fff' : '#121212'}
-                  style={styles(theme).icon}
+                  style={themedStyles.icon}
                 />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles(theme).arrowBackIcon}
+                style={themedStyles.arrowBackIcon}
                 onPress={() => setReportAccount(true)}
               >
                 <Ionicons
                   name="ellipsis-vertical-outline"
                   size={24}
                   color={theme === 'dark' ? '#fff' : '#121212'}
-                  style={styles(theme).icon}
+                  style={themedStyles.icon}
                 />
               </TouchableOpacity>
             </View>
 
             <Image
-              source={{ uri: publicProfile?.profileImage }}
-              style={styles(theme).profileimage}
+              // source={{ uri: publicProfile?.profileImage }}
+              source={ publicProfile.profileImage
+                 ? { uri: publicProfile.profileImage }
+      : require('../../assets/thumblogo.png')
+              }
+              style={themedStyles.profileimage}
             />
           </ImageBackground>
 
-          {/* Block Modal */}
+          {/* Report Modal */}
           <RNModal
             isVisible={reportAccount}
             onBackdropPress={() => setReportAccount(false)}
-            style={styles(theme).modal}
+            style={themedStyles.modal}
           >
-            <View style={styles(theme).modalContent}>
-              <Text style={styles(theme).modalTitle}>Report or Account</Text>
-              <Text style={styles(theme).modalTitleH2}>
-                Below are two options, you can either report this account or
-                block it.
+            <View style={themedStyles.modalContent}>
+              <Text style={themedStyles.modalTitle}>Report or Account</Text>
+              <Text style={themedStyles.modalTitleH2}>
+                Below are two options, you can either report this account or block it.
               </Text>
 
               <ScrollView>
-                <View style={styles(theme).categoryConatiner}>
-                  {[
-                    'Suicide',
-                    'Self-injury',
-                    'Violence or hate',
-                    'Promoting drugs or restricted items',
-                    'Nudity or sexual activity',
-                    'Scam or fraud',
-                  ].map((category, index) => (
+                <View style={themedStyles.categoryConatiner}>
+                  {REPORT_CATEGORIES.map((category, index) => (
                     <TouchableOpacity
                       key={index}
                       onPress={() => handleReportCategoryPress(category)}
                       style={[
-                        styles(theme).categoryButton,
+                        themedStyles.categoryButton,
                         {
                           backgroundColor:
                             selectedCategory === category
@@ -226,7 +219,7 @@ const ProfileHeader = ({ post }) => {
                     >
                       <Text
                         style={[
-                          styles(theme).categoryText,
+                          themedStyles.categoryText,
                           {
                             color:
                               selectedCategory === category
@@ -242,43 +235,32 @@ const ProfileHeader = ({ post }) => {
                     </TouchableOpacity>
                   ))}
                 </View>
-                {/* <View style={styles(theme).searchContent}>
-      <TextInput
-        placeholder="Others"
-        value={reportPostText}
-        onChangeText={setReportPostText}
-        style={styles(theme).searchBar}
-        placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
-      />
-    </View> */}
               </ScrollView>
 
-              <View style={styles(theme).buttons}>
+              <View style={themedStyles.buttons}>
                 <TouchableOpacity
                   onPress={handleReportAccount}
-                  style={styles(theme).closeModalButton}
+                  style={themedStyles.closeModalButton}
                 >
-                  <Text style={styles(theme).closeModalButtonText}>Report Account</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles(theme).blockUserButton}
-                  onPress={handleBlockUser}
-                >
-                  <Text style={styles(theme).blockUserText}>Block Account</Text>
+                  <Text style={themedStyles.closeModalButtonText}>Report Account</Text>
                 </TouchableOpacity>
 
+                <TouchableOpacity
+                  onPress={handleBlockUser}
+                  style={themedStyles.blockUserButton}
+                >
+                  <Text style={themedStyles.blockUserText}>Block Account</Text>
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
                 onPress={() => setReportAccount(false)}
-                style={[
-                  styles(theme).cancelButton,
-                  { backgroundColor: 'gray' },
-                ]}
+                style={[themedStyles.cancelButton, { backgroundColor: 'gray' }]}
               >
-                <Text style={styles(theme).cancelButtonText}>Cancel</Text>
+                <Text style={themedStyles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <Text>{getError}</Text>
+
+              {getError ? <Text style={{ color: 'red' }}>{getError}</Text> : null}
             </View>
           </RNModal>
         </>
@@ -288,6 +270,7 @@ const ProfileHeader = ({ post }) => {
 };
 
 export default ProfileHeader;
+
 
 const styles = theme =>
   StyleSheet.create({

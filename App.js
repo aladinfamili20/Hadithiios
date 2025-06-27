@@ -1,4 +1,4 @@
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import React, { useEffect } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { NavigationContainer } from '@react-navigation/native';
@@ -43,7 +43,10 @@ import mobileAds from 'react-native-google-mobile-ads';
 import EditPhoto from './screens/EditPhoto';
 import EditVideos from './screens/EditVideos';
 import ManageBlockedUsersScreen from './screens/ManageBlockedUsersScreen';
-
+import UserInteractions from './screens/UserInteractions';
+import FollowersScreen from './screens/FollowersScreen';
+import FollowingScreen from './screens/FollowingScreen';
+ 
 const Stack = createNativeStackNavigator();
 
 const App = () => {
@@ -54,6 +57,8 @@ useEffect(() => {
       console.log('AdMob initialized');
     });
 }, []);
+
+
   return (
    <GestureHandlerRootView>
     <SafeAreaProvider>
@@ -114,6 +119,9 @@ useEffect(() => {
       <Stack.Screen name='UserProfileScreen' component={UserProfileScreen} options={{headerShown: false}}/>
       <Stack.Screen name='search' component={SearchScreen} options={{headerShown: false}}/>
       <Stack.Screen name='manageblockedusers' component={ManageBlockedUsersScreen} options={{headerShown: false}}/>
+      <Stack.Screen name='FollowersScreen' component={FollowersScreen} options={{headerShown: false}}/>
+      <Stack.Screen name='FollowingScreen' component={FollowingScreen} options={{headerShown: false}}/>
+
 
     </Stack.Navigator>
    </NavigationContainer>

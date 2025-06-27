@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {use, useCallback, useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -15,11 +15,13 @@ import { truncateString } from '../../components/TextShortner';
 import Divider from '../../components/Divider';
 import DarkMode from '../../components/Theme/DarkMode';
 import { auth, firestore } from '../../data/Firebase';
+import { useUser } from '../../data/Collections/FetchUserData';
  const BATCH_SIZE = 10; // Number of posts to fetch per batch
 
 const Event = () => {
   const theme = DarkMode();
   const user = auth().currentUser;
+  const {userData} = useUser();
   const uid = user?.uid;
   const navigation = useNavigation();
   const [postData, setPostData] = useState([]);
@@ -28,27 +30,9 @@ const Event = () => {
   const [lastVisible, setLastVisible] = useState(null);
   const [fetchingMore, setFetchingMore] = useState(false);
 
-  // Fetch the user's profile data
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      if (uid) {
-        try {
-          const profileSnapshot = await firestore()
-            .collection('profileUpdate')
-            .doc(uid)
-            .get();
-
-          if (profileSnapshot.exists) {
-            setProfileData(profileSnapshot.data());
-          }
-        } catch (error) {
-          console.error('Error fetching profile data:', error);
-        }
-      }
-    };
-
-    fetchProfileData();
-  }, [uid]);
+ useEffect(()=>{
+  setProfileData(userData)
+ },[userData])
 
   const fetchFollowedPosts = useCallback(
     async (isInitialLoad = false) => {
@@ -273,7 +257,7 @@ const Event = () => {
             renderItem={renderEvent}
             keyExtractor={item => item.id.toString()}
             onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
+            onEndReachedThreshold={0.2}
             style={styles(theme).FlatList}
           />
         )}

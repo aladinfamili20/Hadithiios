@@ -54,7 +54,7 @@ const ProfileInfo = () => {
             accessibilityLabel="Go to profile">
             <View style={styles(theme).profileContainer}>
               <Image
-                source={{uri: postDetails.profileImage}}
+                source={postDetails.profileImage ? {uri: postDetails.profileImage}   : require('../../assets/thumblogo.png')}
                 style={styles(theme).profileImage}
               />
               <View style={styles(theme).profileDetails}>

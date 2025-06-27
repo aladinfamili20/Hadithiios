@@ -18,6 +18,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import DarkMode from '../../components/Theme/DarkMode';
 import { auth } from '../../data/Firebase';
 import Divider from '../../components/Divider';
+import { useUser } from '../../data/Collections/FetchUserData';
 
 const SearchEvent = () => {
   const theme = DarkMode();
@@ -26,32 +27,13 @@ const SearchEvent = () => {
   const [loading, setIsLoading] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [postData, setPostData] = useState([]);
-
+  const [postData, setPostData] = useState(null);
+  const {userData} = useUser();
   const navigation = useNavigation();
-
-
-  // Fetch the user's profile data
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      if (uid) {
-        try {
-          const profileSnapshot = await firestore()
-            .collection('profileUpdate')
-            .doc(uid)
-            .get();
-
-          if (profileSnapshot.exists) {
-            setPostData(profileSnapshot.data());
-          }
-        } catch (error) {
-          console.error('Error fetching profile data:', error);
-        }
-      }
-    };
-
-    fetchProfileData();
-  }, [uid]);
+  
+  useEffect(()=>{
+    setPostData(userData)
+  },[userData])
 
 
   const handleSearch = async () => {
@@ -221,9 +203,9 @@ const SearchEvent = () => {
                       {item.eventInterestedUsers.slice(0, 3).map((user, index) => (
                         <Image
                           key={index}
-                          source={{
-                            uri: user.profileImage || 'https://via.placeholder.com/50',
-                          }}
+                          
+                        source={user.profileImage ? {uri: user.profileImage}   : require('../../assets/thumblogo.png')}
+
                           style={styles(theme).userImage}
                         />
                       ))}

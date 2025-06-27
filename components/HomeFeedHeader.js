@@ -7,24 +7,31 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
-import {auth, firestore} from '../data/Firebase';
-import {useNavigation} from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { auth, firestore } from '../data/Firebase';
+import { useNavigation } from '@react-navigation/native';
 import DarkMode from './Theme/DarkMode';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import mobileAds, {BannerAd, TestIds, BannerAdSize} from 'react-native-google-mobile-ads';
+import mobileAds, {
+  BannerAd,
+  TestIds,
+  BannerAdSize,
+} from 'react-native-google-mobile-ads';
 import {
   collection,
   getDocs,
   getFirestore,
+  onSnapshot,
   query,
   where,
 } from '@react-native-firebase/firestore';
-import {getApp} from '@react-native-firebase/app';
+import { getApp } from '@react-native-firebase/app';
 
 // Test Ads
 
-const testAdUnit = __DEV__ ? TestIds.BANNER : 'ca-app-pub-xxxxxxxxxxxxxxxx/zzzzzzzzzz';
+const testAdUnit = __DEV__
+  ? TestIds.BANNER
+  : 'ca-app-pub-xxxxxxxxxxxxxxxx/zzzzzzzzzz';
 
 //   Live ads
 const liveAdUnit = 'ca-app-pub-9427314859640201/5919265806';
@@ -36,49 +43,42 @@ const HomeFeedHeader = () => {
   const navigation = useNavigation();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
- 
-
   const db = getFirestore(getApp());
 
-  const fetchUnreadNotifications = async () => {
-    try {
-      const notificationsRef = collection(db, 'notifications');
-      const notificationsQuery = query(
-        notificationsRef,
-        where('recipientId', '==', uid),
-        where('read', '==', false),
-      );
+useEffect(() => {
+  if (!uid) return;
 
-      const snapshot = await getDocs(notificationsQuery);
-      setUnreadNotifications(snapshot.size);
-    } catch (error) {
-      // console.error('Error fetching notifications:', error);
-    }
-  };
+  const notificationsRef = collection(db, 'notifications');
+  const notificationsQuery = query(
+    notificationsRef,
+    where('recipientId', '==', uid),
+    where('read', '==', false)
+  );
 
-  useEffect(() => {
-    fetchUnreadNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const unsubscribe = onSnapshot(notificationsQuery, snapshot => {
+    setUnreadNotifications(snapshot.size);
   });
 
-useEffect(() => {
-  mobileAds()
-    .initialize()
-    .then(adapterStatuses => {
-      console.log('AdMob initialized');
-    });
-}, []);
+  return () => unsubscribe();
+}, [db, uid]);
+
+
+  useEffect(() => {
+    mobileAds()
+      .initialize()
+      .then(adapterStatuses => {
+        console.log('AdMob initialized');
+      });
+  }, []);
 
   return (
     <View>
-      <View style={{marginTop: 10, alignItems: 'center'}}>
+      <View style={{ marginTop: 10, alignItems: 'center' }}>
         <BannerAd
           unitId={liveAdUnit}
           size={BannerAdSize.ADAPTIVE_BANNER}
-          requestOptions={{requestNonPersonalizedAdsOnly: true}}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         />
-
-        
 
         {/* <BannerAd
           unitId={liveAdUnit}
@@ -109,7 +109,7 @@ useEffect(() => {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            style={{marginRight: 10}}
+            style={{ marginRight: 10 }}
             onPress={async () => {
               try {
                 // Update unread notifications to read
@@ -122,7 +122,7 @@ useEffect(() => {
 
                 const batch = firestore().batch();
                 snapshot.forEach(doc => {
-                  batch.update(doc.ref, {read: true});
+                  batch.update(doc.ref, { read: true });
                 });
                 await batch.commit();
 
@@ -134,7 +134,8 @@ useEffect(() => {
               } catch (error) {
                 console.error('Error marking notifications as read:', error);
               }
-            }}>
+            }}
+          >
             <Ionicons
               name="notifications-outline"
               size={25}

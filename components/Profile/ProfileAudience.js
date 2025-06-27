@@ -1,41 +1,34 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
+import { useNavigation } from '@react-navigation/native';
 
 const ProfileAudience = ({theme, followers, following}) => {
+  const navigation = useNavigation();
   return (
+    
     <View>
-      {/* <View style={styles(theme).userAudience}>
-        <View style={styles(theme).followerContainer}>
-          <View style={styles(theme).followerConent}>
-            <Text style={styles(theme).follower}>{followers.length}</Text>
-            <Text style={styles(theme).followerNunber}>Followers</Text>
-          </View>
-        </View>
-        <View style={styles(theme).followerContainer}>
-          <View style={styles(theme).followerConent}>
-            <Text style={styles(theme).follower}>{following.length}</Text>
-            <Text style={styles(theme).followerNunber}>Following</Text>
-          </View>
-        </View>
-      </View> */}
-
       <View style={styles(theme).userAudience}>
               <View style={styles(theme).followerContainer}>
-                <View style={styles(theme).followerContent}>
+                <TouchableOpacity style={styles(theme).followerContent}
+                onPress={()=>navigation.navigate('FollowersScreen')}
+                >
                   <Text style={styles(theme).follower}>
                     {followers.length || 0}
                   </Text>
                   <Text style={styles(theme).followerLabel}>Followers</Text>
-                </View>
+                </TouchableOpacity>
               </View>
       
               <View style={styles(theme).followerContainer}>
-                <View style={styles(theme).followerContent}>
+                <TouchableOpacity 
+                onPress={()=>navigation.navigate('FollowingScreen')}
+
+                style={styles(theme).followerContent}>
                   <Text style={styles(theme).follower}>
                     {following.length || 0}
                   </Text>
                   <Text style={styles(theme).followerLabel}>Following</Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
     </View>

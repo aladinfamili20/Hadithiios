@@ -13,7 +13,7 @@ import DarkMode from '../Theme/DarkMode';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useUser } from '../../data/Collections/FetchUserData';
 import RNModal from 'react-native-modal';
-
+ 
 const PostInteranctionsScreen = ({ post }) => {
   const theme = DarkMode();
   const user = auth().currentUser;
@@ -51,6 +51,7 @@ const PostInteranctionsScreen = ({ post }) => {
 
     try {
       const alreadyLiked = likes.includes(uid);
+      const {displayName, lastName, profileImage} = getUserInfo;
       const updatedLikes = alreadyLiked
         ? likes.filter(userId => userId !== uid)
         : [...likes, uid];
@@ -65,6 +66,21 @@ const PostInteranctionsScreen = ({ post }) => {
           ? firestore.FieldValue.arrayRemove(uid)
           : firestore.FieldValue.arrayUnion(uid),
       });
+
+             await firestore().collection('notifications').add({
+              lickerDisplayName: `${displayName} ${lastName}`,
+              lickerProfileImage: profileImage,
+              postImage: post.image,
+              timestamp: firestore.Timestamp.now(),
+              // read: false,
+              uid:uid,
+              postUserUid:post.uid,
+              postID:post.id,
+              read:false,
+            });
+        
+
+
     } catch (error) {
       console.error('Error updating likes:', error);
       setGetError('There was an error liking the post. Please try again.');
@@ -72,7 +88,6 @@ const PostInteranctionsScreen = ({ post }) => {
   };
 
   const navigation = useNavigation();
-  const [loading, setLoading] = useState(false);
 
   const handleSavePost = async () => {
     if (!uid) {

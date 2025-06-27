@@ -1,6 +1,6 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-trailing-spaces */
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,24 +11,28 @@ import {
   Alert,
   Image,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // import Video from 'react-native-video';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import RNModal from 'react-native-modal';
-import {Video as VideoCompressor} from 'react-native-compressor';
+import { Video as VideoCompressor } from 'react-native-compressor';
 import RNFS from 'react-native-fs'; // For file size checking
 import Video from 'react-native-video';
 import DarkMode from '../../components/Theme/DarkMode';
 import { useUser } from '../../data/Collections/FetchUserData';
- 
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+
 const VideoCustomize = () => {
   const theme = DarkMode();
-  const {userData} = useUser();
-  const {video} = useRoute().params;
+  const { userData } = useUser();
+  const { video } = useRoute().params;
   const user = auth().currentUser;
   const uid = user?.uid;
   const [caption, setCaption] = useState('');
@@ -119,7 +123,7 @@ const VideoCustomize = () => {
 
     setIsLoading(true);
     try {
-      const {displayName, profileImage, lastName} = profileData;
+      const { displayName, profileImage, lastName } = profileData;
 
       if (!displayName || !profileImage || !lastName) {
         Alert.alert('Error', 'Incomplete profile data');
@@ -194,11 +198,11 @@ const VideoCustomize = () => {
         .get();
 
       displayNameSnapshot.forEach(doc => {
-        results.push({id: doc.id, ...doc.data()});
+        results.push({ id: doc.id, ...doc.data() });
       });
 
       lastNameSnapshot.forEach(doc => {
-        const user = {id: doc.id, ...doc.data()};
+        const user = { id: doc.id, ...doc.data() };
         if (!results.find(u => u.id === user.id)) {
           results.push(user);
         }
@@ -239,159 +243,181 @@ const VideoCustomize = () => {
       }
     };
   }, []);
- 
 
   return (
-    <View style={styles(theme).container}>
-      <ScrollView contentContainerStyle={styles(theme).scrollViewContainer}>
-        <View style={styles(theme).header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons
-              name="chevron-back-outline"
-              color={theme === 'dark' ? '#fff' : '#121212'}
-              size={25}
-            />
-          </TouchableOpacity>
-          <Text style={styles(theme).title}>Upload Photo</Text>
-        </View>
+    <KeyboardAvoidingView
+      style={styles(theme).container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <KeyboardAwareScrollView
+        onPress={Keyboard.dismiss}
+        contentContainerStyle={styles(theme).scrollViewContainer}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+      >
+        <View style={styles(theme).container}>
+          <ScrollView contentContainerStyle={styles(theme).scrollViewContainer}>
+            <View style={styles(theme).header}>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Ionicons
+                  name="chevron-back-outline"
+                  color={theme === 'dark' ? '#fff' : '#121212'}
+                  size={25}
+                />
+              </TouchableOpacity>
+              <Text style={styles(theme).title}>Upload Photo</Text>
+            </View>
 
+            {loadingCompression ? (
+              <>
+                <Text style={styles(theme).compressionTitle}>
+                  Laoding compression version, Please wait.
+                </Text>
+              </>
+            ) : (
+              <>
+                {compressedVideoUri && (
+                  <Video
+                    source={{ uri: compressedVideoUri }}
+                    resizeMode="cover"
+                    paused={!isPlaying}
+                    repeat={false}
+                    style={styles(theme).video}
+                  />
+                )}
+              </>
+            )}
 
-        {loadingCompression ? (
-          <>
-          <Text style={styles(theme).compressionTitle}>Laoding compression version, Please wait.</Text>
-          </>
-        ) : (
-          <>
-          {compressedVideoUri && (
-          <Video
-            source={{uri: compressedVideoUri}}
-            resizeMode="cover"
-            paused={!isPlaying}
-            repeat={false}
-            style={styles(theme).video}
-          />
-        )}
-          </>
-        )}
-
-         
-
-        {/* {videoSizeMB && (
+            {/* {videoSizeMB && (
           <Text style={{textAlign: 'center', marginTop: 4, color: 'gray'}}>
             Compressed Size: {videoSizeMB} MB
           </Text>
         )} */}
 
-        {/* Caption Input */}
-        <TextInput
-          placeholder="Write a caption..."
-          style={styles(theme).captionInput}
-          value={caption}
-          onChangeText={setCaption}
-          multiline
-          placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
-        />
-
-        {/* Open Modal for Tagging */}
-        <TouchableOpacity
-          onPress={() => setIsTagModalVisible(true)}
-          style={styles(theme).openTagModalButton}>
-          <Text style={styles(theme).openTagModalText}>Tag Users</Text>
-        </TouchableOpacity>
-
-        {/* Display Tagged Users */}
-        <View style={styles(theme).taggedUsersContainer}>
-          {taggedUsers.map((user, index) => (
-            <View key={index} style={styles(theme).taggedUser}>
-              <Text style={styles(theme).taggedUserName}>
-                {user.displayName} {user.lastName}
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  setTaggedUsers(taggedUsers.filter(u => u.id !== user.id))
-                }>
-                <Text style={styles(theme).removeTagButton}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-
-        {/* Submit Button */}
-        {isLoading ? (
-          <ActivityIndicator
-            size="large"
-            color="tomato"
-            style={{marginTop: 16}}
-          />
-        ) : (
-          <>
- 
-          <TouchableOpacity
-            onPress={createPost}
-            style={styles(theme).createPostButton}>
-            <Text style={styles(theme).createPostButtonText}>Submit</Text>
-          </TouchableOpacity>
-          </>
-        )}
-      </ScrollView>
-
-      {/* Tag Users Modal */}
-      <RNModal
-        isVisible={isTagModalVisible}
-        onBackdropPress={() => setIsTagModalVisible(false)}
-        style={styles(theme).modal}>
-        <View style={styles(theme).modalContent}>
-          <Text style={styles(theme).modalTitle}>Tag Users</Text>
-
-          <View style={styles(theme).searchContent}>
+            {/* Caption Input */}
             <TextInput
-              placeholder="Search users..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              // onSubmitEditing={handleSearch}
-              style={styles(theme).searchBar}
+              placeholder="Write a caption..."
+              style={styles(theme).captionInput}
+              value={caption}
+              onChangeText={setCaption}
+              multiline
               placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
             />
-            <TouchableOpacity onPress={handleSearch} style={{marginLeft: 8}}>
-              <Ionicons
-                name="search-outline"
-                size={24}
-                color={theme === 'light' ? '#000' : '#fff'}
-              />
+
+            {/* Open Modal for Tagging */}
+            <TouchableOpacity
+              onPress={() => setIsTagModalVisible(true)}
+              style={styles(theme).openTagModalButton}
+            >
+              <Text style={styles(theme).openTagModalText}>Tag Users</Text>
             </TouchableOpacity>
-          </View>
 
-          <FlatList
-            data={searchResults}
-            keyExtractor={item => item.id}
-            renderItem={({item}) => (
-              <TouchableOpacity
-                style={styles(theme).searchResultItem}
-                onPress={() => {
-                  if (!taggedUsers.find(u => u.id === item.id)) {
-                    setTaggedUsers([...taggedUsers, item]);
-                  }
-                }}>
-                <Image
-                  source={{uri: item.profileImage}}
-                  style={styles(theme).profileImage}
-                />
-                <Text style={styles(theme).searchResultText}>
-                  {item.displayName} {item.lastName}
-                </Text>
-              </TouchableOpacity>
+            {/* Display Tagged Users */}
+            <View style={styles(theme).taggedUsersContainer}>
+              {taggedUsers.map((user, index) => (
+                <View key={index} style={styles(theme).taggedUser}>
+                  <Text style={styles(theme).taggedUserName}>
+                    {user.displayName} {user.lastName}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setTaggedUsers(taggedUsers.filter(u => u.id !== user.id))
+                    }
+                  >
+                    <Text style={styles(theme).removeTagButton}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+
+            {/* Submit Button */}
+            {isLoading ? (
+              <ActivityIndicator
+                size="large"
+                color="tomato"
+                style={{ marginTop: 16 }}
+              />
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={createPost}
+                  style={styles(theme).createPostButton}
+                >
+                  <Text style={styles(theme).createPostButtonText}>Submit</Text>
+                </TouchableOpacity>
+              </>
             )}
-            style={{marginTop: 10}}
-          />
+          </ScrollView>
 
-          <TouchableOpacity
-            onPress={() => setIsTagModalVisible(false)}
-            style={styles(theme).closeModalButton}>
-            <Text style={styles(theme).closeModalButtonText}>Done</Text>
-          </TouchableOpacity>
+          {/* Tag Users Modal */}
+          <RNModal
+            isVisible={isTagModalVisible}
+            onBackdropPress={() => setIsTagModalVisible(false)}
+            style={styles(theme).modal}
+          >
+            <View style={styles(theme).modalContent}>
+              <Text style={styles(theme).modalTitle}>Tag Users</Text>
+
+              <View style={styles(theme).searchContent}>
+                <TextInput
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  // onSubmitEditing={handleSearch}
+                  style={styles(theme).searchBar}
+                  placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
+                />
+                <TouchableOpacity
+                  onPress={handleSearch}
+                  style={{ marginLeft: 8 }}
+                >
+                  <Ionicons
+                    name="search-outline"
+                    size={24}
+                    color={theme === 'light' ? '#000' : '#fff'}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <FlatList
+                data={searchResults}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles(theme).searchResultItem}
+                    onPress={() => {
+                      if (!taggedUsers.find(u => u.id === item.id)) {
+                        setTaggedUsers([...taggedUsers, item]);
+                      }
+                    }}
+                  >
+                    <Image
+                      source={{ uri: item.profileImage }}
+                      style={styles(theme).profileImage}
+                    />
+                    <Text style={styles(theme).searchResultText}>
+                      {item.displayName} {item.lastName}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                style={{ marginTop: 10 }}
+              />
+
+              <TouchableOpacity
+                onPress={() => setIsTagModalVisible(false)}
+                style={styles(theme).closeModalButton}
+              >
+                <Text style={styles(theme).closeModalButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </RNModal>
         </View>
-      </RNModal>
-    </View>
+      </KeyboardAwareScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -444,10 +470,9 @@ const styles = theme => ({
     marginBottom: 20,
     borderRadius: 10,
   },
-  compressionTitle:{
+  compressionTitle: {
     margin: 5,
     color: theme === 'light' ? '#000' : '#fff',
-
   },
   captionInput: {
     borderWidth: 1,

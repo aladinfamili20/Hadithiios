@@ -20,11 +20,13 @@ import AudienceBio from '../components/AudienceScreen/AudienceBio';
 import Video from 'react-native-video';
 import Image from 'react-native-image-progress';
 import AudienceFriends from '../components/AudienceScreen/AudeinceFriends';
+import { useUser } from '../data/Collections/FetchUserData';
 
 const screenWidth = Dimensions.get('window').width;
 const imageSize = (screenWidth - 16) / 3;
 const UserProfileScreen = () => {
   const theme = DarkMode();
+  const {userData} = useUser();
   const [selectedTab, setSelectedTab] = useState('photos'); // or 'videos'
   const [userVideos, setUserVideos] = useState([]);
   const [videoCounter, setVideoCounter] = useState([]);
@@ -108,7 +110,7 @@ const UserProfileScreen = () => {
     return (
       <View style={styles(theme, imageSize).profileContainer}>
         <StatusBar style="auto" />
-        <ProfileHeader />
+        <ProfileHeader userData={userData} />
         <View style={styles(theme, imageSize).profileContents}>
           <AudienceProfileInfo />
 

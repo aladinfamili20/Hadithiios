@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 /* eslint-disable curly */
 /* eslint-disable no-catch-shadow */
 /* eslint-disable no-shadow */
@@ -14,6 +15,10 @@ import {
   ActivityIndicator,
   Alert,
   useWindowDimensions,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -23,6 +28,7 @@ import auth from '@react-native-firebase/auth';
 import ImagePicker from 'react-native-image-crop-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DarkMode from '../components/Theme/DarkMode';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const ProfileSetup = () => {
   const theme = DarkMode();
@@ -145,6 +151,7 @@ const ProfileSetup = () => {
         hour: '2-digit',
         minute: '2-digit',
       });
+ 
       const dateSignedUp = today.toLocaleDateString();
       const uploadedBannerImage =
         backgroundImageBanner !== defaultBannerImage
@@ -158,11 +165,13 @@ const ProfileSetup = () => {
 
       // Dynamically create update data
       const updateData = {
-        updatedAt: now,
-        date: date,
-        Hours: Hours,
-        dateSignedUp: dateSignedUp,
-      };
+      updatedAt: now,
+      date: date,
+      Hours: Hours,
+      dateSignedUp: dateSignedUp,
+      uid: uid,
+    };
+    
 
       if (userName) updateData.userName = userName;
       if (displayName) updateData.displayName = displayName;
@@ -176,7 +185,7 @@ const ProfileSetup = () => {
         .collection('profileUpdate')
         .doc(uid)
         .set(updateData, { merge: true });
-
+ 
       setError('Profile updated successfully!');
       navigation.navigate('feed');
     } catch (err) {
@@ -188,8 +197,15 @@ const ProfileSetup = () => {
   };
 
   return (
-    <View style={themedStyles.container}>
-      <ScrollView>
+ 
+  <KeyboardAwareScrollView
+   style={styles(theme).container}
+    contentContainerStyle={{ paddingBottom: 60 }}
+    enableOnAndroid={true}
+    extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
+    keyboardShouldPersistTaps="handled"
+  >
+      
         <ImageBackground
           source={{ uri: backgroundImageBanner || defaultBannerImage }}
           style={themedStyles.bannerImage}
@@ -205,6 +221,7 @@ const ProfileSetup = () => {
               <Ionicons name="add" size={24} color="#121212" />
             </TouchableOpacity>
           </View>
+
           <Image
             source={{ uri: profileEditImage || defaultProfileImage }}
             style={themedStyles.profileImage}
@@ -240,7 +257,6 @@ const ProfileSetup = () => {
             placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
             autoCapitalize="none"
           />
-
           <TextInput
             style={themedStyles.input}
             placeholder="Link"
@@ -271,8 +287,7 @@ const ProfileSetup = () => {
 
           {error && <Text style={themedStyles.errorText}>{error}</Text>}
         </View>
-      </ScrollView>
-    </View>
+   </KeyboardAwareScrollView>
   );
 };
 

@@ -3,6 +3,9 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import Firebase
+import FirebaseCore
+import FirebaseFirestore
+import FirebaseAuth
 // import GoogleMobileAds/GoogleMobileAds
 
 @main

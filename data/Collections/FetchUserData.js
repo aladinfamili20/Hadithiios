@@ -10,6 +10,7 @@ export const FetchUserData = ({children}) => {
     const [userData, setUserData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+console.log('Logged in user data:', userData);
 
     useEffect(() => {
       const user = auth().currentUser;

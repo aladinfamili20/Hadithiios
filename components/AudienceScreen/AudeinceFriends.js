@@ -1,99 +1,149 @@
 /* eslint-disable react-native/no-inline-styles */
-import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import React, {useEffect, useState} from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { use, useEffect, useState } from 'react';
 import DarkMode from '../Theme/DarkMode';
-import {useRoute} from '@react-navigation/native';
-import {auth, firestore} from '../../data/Firebase';
-import {useUser} from '../../data/Collections/FetchUserData';
+import { useRoute } from '@react-navigation/native';
+import { auth, firestore } from '../../data/Firebase';
 import FetchFriendsCollection from '../FetchFriendsCollection';
 import FecthUserProfile from '../FetchUserProfile';
-
+import { useUser } from '../../data/Collections/FetchUserData';
+import { currentLoggedInUserData } from '../FetchFollowingData';
+import { Timestamp } from '@react-native-firebase/firestore';
+ 
 const AudienceFriends = () => {
   const route = useRoute();
 
-  const {uid} = route.params;
+  const { uid } = route.params;
   const user = auth().currentUser;
+  const { getCurrentLoggedIn } = currentLoggedInUserData();
   const {userData} = useUser();
-
   const theme = DarkMode();
-  const {userprofile} = FecthUserProfile('profileUpdate', uid);
-  const {friends} = FetchFriendsCollection('users', uid);
+  const { userprofile } = FecthUserProfile('profileUpdate', uid);
+  const { friends } = FetchFriendsCollection('users', uid);
   const [publicProfile, setPublicProfile] = useState(null);
   const [fetchFriends, setFetchFriends] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentLoggedInUser, setCurrentLoggedInUser] = useState(null);
+  const [getProfInfo, setGetProfInfo] = useState(null);
   const [getError, setGetError] = useState('');
-  useEffect(() => {
+
+  useEffect(()=>{
+    setGetProfInfo(userData);
+  },[userData])
+
+   useEffect(() => {
     setPublicProfile(userprofile);
   }, [userprofile]);
+
+
 
   useEffect(() => {
     setFetchFriends(friends);
   }, [friends]);
 
   useEffect(() => {
-    setCurrentLoggedInUser(userData);
-  }, [userData]);
+    setCurrentLoggedInUser(getCurrentLoggedIn);
+  }, [getCurrentLoggedIn]);
 
-  const handleFollow = async () => {
-    const currentUserId = user?.uid;
-    const targetUserId = publicProfile?.uid;
+  // useEffect(() => {
+  //   if (
+  //     getCurrentLoggedIn?.following &&
+  //     Array.isArray(getCurrentLoggedIn.following) &&
+  //     publicProfile?.uid
+  //   ) {
+  //     const isAlreadyFollowing = getCurrentLoggedIn.following.includes(publicProfile.uid);
+  //     setIsFollowing(isAlreadyFollowing);
+  //   }
+  // }, [getCurrentLoggedIn, publicProfile]);
 
-    if (!currentUserId || !targetUserId) return;
+ 
 
-    const currentUserRef = firestore().collection('users').doc(currentUserId);
-    const targetUserRef = firestore().collection('users').doc(targetUserId);
 
-    try {
-      if (isFollowing) {
-        await currentUserRef.update({
-          following: firestore.FieldValue.arrayRemove(targetUserId),
-        });
-        await targetUserRef.update({
-          followers: firestore.FieldValue.arrayRemove({
-            uid: currentUserId,
-            displayName: currentLoggedInUser?.displayName,
-            profileImage: currentLoggedInUser?.profileImage,
-          }),
-        });
-        setIsFollowing(false);
-      } else {
-        await currentUserRef.update({
-          following: firestore.FieldValue.arrayUnion(targetUserId),
-        });
-        await targetUserRef.update({
-          followers: firestore.FieldValue.arrayUnion({
-            uid: currentUserId,
-            displayName: currentLoggedInUser?.displayName,
-            profileImage: currentLoggedInUser?.profileImage,
-          }),
-        });
-        setIsFollowing(true);
-      }
+const handleFollow = async () => {
+  const currentUserId = user?.uid;
+  const targetUserId = publicProfile?.uid;
+  if (!currentUserId || !targetUserId) return;
 
-      // Add a notification to the Firestore notifications collection
-      const notificationsRef = firestore().collection('notifications');
-      await notificationsRef.add({
+  const currentUserRef = firestore().collection('users').doc(currentUserId);
+  const targetUserRef = firestore().collection('users').doc(targetUserId);
+
+        const { displayName, lastName, profileImage } = getProfInfo || {};
+
+ 
+  try {
+    if (isFollowing) {
+      // UNFOLLOW
+      await currentUserRef.update({
+        following: firestore.FieldValue.arrayRemove(targetUserId),
+      });
+
+      await targetUserRef.update({
+        followers: firestore.FieldValue.arrayRemove({
+          uid:currentUserId,
+          displayName,
+          lastName,
+          profileImage,
+          createdAt: Timestamp.now(),
+        }),
+   
+      });
+
+      setIsFollowing(false);
+    } else {
+      // FOLLOW
+      await currentUserRef.update({
+        following: firestore.FieldValue.arrayUnion({
+          uid: targetUserId,
+          displayName:publicProfile.displayName,
+          lastName:publicProfile.lastName,
+          profileImage:publicProfile.profileImage,
+          createdAt: Timestamp.now(),
+        }),
+        
+      });
+
+      await targetUserRef.update({
+        followers: firestore.FieldValue.arrayUnion({
+          uid:currentUserId,
+          displayName,
+          lastName,
+          profileImage,
+          createdAt: Timestamp.now(),
+        }),
+      });
+
+      setIsFollowing(true);
+
+        await firestore().collection('notifications').add({
         recipientId: targetUserId,
         type: 'new_follower',
         followerId: currentUserId,
-        followerName: `${currentLoggedInUser.displayName} ${currentLoggedInUser.lastName}`,
-        followerImage: currentLoggedInUser.profileImage,
+        followerName: `${displayName} ${lastName}`,
+        followerImage: profileImage,
         timestamp: firestore.Timestamp.now(),
         read: false,
       });
-
-      Alert.alert(isFollowing ? 'Unfollowed' : 'Followed');
-      // Alert.alert('User followed successfully!');
-      
-    } catch (error) {
-      console.error('Error updating follow state:', error);
-      if(!user){
-        setGetError('Error following a user')
-       
-      }
     }
-  };
+
+    Alert.alert(isFollowing ? 'Unfollowed' : 'Followed');
+  } catch (error) {
+    console.error('Error updating follow state:', error);
+    setGetError('Follow/unfollow failed. Please try again.');
+  }
+};
+
+
+useEffect(() => {
+  if (
+    getCurrentLoggedIn?.following &&
+    Array.isArray(getCurrentLoggedIn.following) &&
+    publicProfile?.uid
+  ) {
+    const isAlreadyFollowing = getCurrentLoggedIn.following.includes(publicProfile.uid);
+    setIsFollowing(isAlreadyFollowing);
+  }
+}, [getCurrentLoggedIn, publicProfile]);
+
 
 
   return (
@@ -118,7 +168,10 @@ const AudienceFriends = () => {
         </View>
       </View>
 
-      <TouchableOpacity onPress={handleFollow} style={styles(theme).followButton}>
+      <TouchableOpacity
+        onPress={handleFollow}
+        style={styles(theme).followButton}
+      >
         <Text style={styles(theme).followButtonText}>
           {isFollowing ? 'Unfollow' : 'Follow'}
         </Text>
@@ -133,7 +186,7 @@ export default AudienceFriends;
 
 const styles = theme =>
   StyleSheet.create({
-     container: {
+    container: {
       padding: 20,
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       flex: 1,
@@ -172,7 +225,7 @@ const styles = theme =>
       paddingHorizontal: 25,
       alignSelf: 'center',
       shadowColor: '#000',
-      shadowOffset: {width: 0, height: 2},
+      shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.3,
       shadowRadius: 3,
       elevation: 4,
@@ -184,3 +237,4 @@ const styles = theme =>
       color: 'white',
     },
   });
+

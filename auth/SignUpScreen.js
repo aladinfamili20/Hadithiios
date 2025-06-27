@@ -1,5 +1,5 @@
 /* eslint-disable no-trailing-spaces */
-import React, {useEffect, useState} from 'react';
+import React, { useState} from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,17 @@ import {
   StyleSheet,
   Alert,
   Image,
-  Appearance,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DarkMode from '../components/Theme/DarkMode';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const SignUpScreen = () => {
   const theme = DarkMode();
@@ -90,7 +94,16 @@ const SignUpScreen = () => {
   };
 
   return (
-    <View style={styles(theme).container}>
+
+    <KeyboardAvoidingView
+        style={styles(theme).container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+     <TouchableWithoutFeedback
+     onPress={Keyboard.dismiss}
+     >
+           <View >
       <View>
         <Image
           source={require('../assets/Logo+name2.png')}
@@ -179,6 +192,9 @@ const SignUpScreen = () => {
         </View>
       </View>
     </View>
+     </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+
   );
 };
 

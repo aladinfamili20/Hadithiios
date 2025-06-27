@@ -2,6 +2,7 @@
 import {
   Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -10,28 +11,26 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
-import {auth, firestore} from '../../data/Firebase';
-import {CommonActions, useNavigation} from '@react-navigation/native';
-import {useUser} from '../../data/Collections/FetchUserData';
+import React, { useEffect, useState } from 'react';
+import { auth, firestore } from '../../data/Firebase';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useUser } from '../../data/Collections/FetchUserData';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DarkMode from '../Theme/DarkMode';
 import Divider from '../Divider';
 import RNModal from 'react-native-modal';
 
-const VideoInteractionScreen = ({post}) => {
+const VideoInteractionScreen = ({ post }) => {
   // State hooks
   const user = auth().currentUser;
   const uid = user?.uid;
-  const likesCount = post.likes_by_user ? post.likes_by_user.length : 0;
-  const isLikedByCurrentUser = uid && post.likes_by_user?.includes(uid);
   const theme = DarkMode();
   const navigation = useNavigation();
-  const {userData} = useUser();
-  const [savedPosts, setSavedPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { userData } = useUser();
+
   const [comment, setComment] = useState('');
   const [userInfoProfileFetch, setUserProfileFetch] = useState(null);
   const [openCommentModal, setOpenCommentModal] = useState(false);
@@ -43,20 +42,19 @@ const VideoInteractionScreen = ({post}) => {
   const [reportPostText, setReportPostText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [getError, setGetError] = useState('');
-    const [isLiked, setIsLiked] = useState(false);
-    const [likes, setLikes] = useState(post.likes_by_user || []);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likes, setLikes] = useState(post.likes_by_user || []);
   const [isSaved, setIsSaved] = useState(false);
 
-useEffect(() => {
-  setLikes(post.likes_by_user || []);
-  setIsLiked(uid && post.likes_by_user?.includes(uid));
-}, [post, uid]);
+  useEffect(() => {
+    setLikes(post.likes_by_user || []);
+    setIsLiked(uid && post.likes_by_user?.includes(uid));
+  }, [post, uid]);
 
-useEffect(() => {
-  setGetUserInfo(userData);
-  setIsSaved(uid && post.saved_by_user?.includes(uid));
-}, [userData, post, uid]);
-
+  useEffect(() => {
+    setGetUserInfo(userData);
+    setIsSaved(uid && post.saved_by_user?.includes(uid));
+  }, [userData, post, uid]);
 
   useEffect(() => {
     setGetUserInfo(userData);
@@ -69,41 +67,35 @@ useEffect(() => {
     setUserProfileFetch(userData);
   }, [userData]);
 
-
   const handleLike = async () => {
-  if (!uid) {
-    setGetError('You need to be logged in to like a post.');
-    return;
-  }
+    if (!uid) {
+      setGetError('You need to be logged in to like a post.');
+      return;
+    }
 
-  const postRef = firestore().collection('videos').doc(post.id);
+    const postRef = firestore().collection('videos').doc(post.id);
 
-  try {
-    const alreadyLiked = likes.includes(uid);
-    const updatedLikes = alreadyLiked
-      ? likes.filter(userId => userId !== uid)
-      : [...likes, uid];
+    try {
+      const alreadyLiked = likes.includes(uid);
+      const updatedLikes = alreadyLiked
+        ? likes.filter(userId => userId !== uid)
+        : [...likes, uid];
 
-    // Optimistic update
-    setLikes(updatedLikes);
-    setIsLiked(!alreadyLiked);
+      // Optimistic update
+      setLikes(updatedLikes);
+      setIsLiked(!alreadyLiked);
 
-    // Firestore update
-    await postRef.update({
-      likes_by_user: alreadyLiked
-        ? firestore.FieldValue.arrayRemove(uid)
-        : firestore.FieldValue.arrayUnion(uid),
-    });
-  } catch (error) {
-    console.error('Error updating likes:', error);
-    setGetError('There was an error liking the post. Please try again.');
-  }
-};
-
-
-
-
-
+      // Firestore update
+      await postRef.update({
+        likes_by_user: alreadyLiked
+          ? firestore.FieldValue.arrayRemove(uid)
+          : firestore.FieldValue.arrayUnion(uid),
+      });
+    } catch (error) {
+      console.error('Error updating likes:', error);
+      setGetError('There was an error liking the post. Please try again.');
+    }
+  };
 
   const addReplyToFirebase = async commentId => {
     if (!post || !userInfoProfileFetch || !replies[commentId]?.trim()) {
@@ -112,7 +104,7 @@ useEffect(() => {
     }
 
     try {
-      const {displayName, lastName, profileImage} = userInfoProfileFetch;
+      const { displayName, lastName, profileImage } = userInfoProfileFetch;
       const today = new Date();
       const date = today.toDateString();
       const Hours = today.toLocaleTimeString([], {
@@ -163,44 +155,41 @@ useEffect(() => {
     navigation.dispatch(
       CommonActions.navigate({
         name: 'UserProfileScreen',
-        params: {uid: userId},
+        params: { uid: userId },
       }),
     );
   };
 
-
-// Saving video
+  // Saving video
   const handleSavePost = async () => {
-  if (!uid) {
-    setGetError('You need to be logged in to save a post.');
-    return;
-  }
+    if (!uid) {
+      setGetError('You need to be logged in to save a post.');
+      return;
+    }
 
-  const postRef = firestore().collection('videos').doc(post.id);
+    const postRef = firestore().collection('videos').doc(post.id);
 
-  try {
-    const willUnsave = isSaved;
+    try {
+      const willUnsave = isSaved;
 
-    // Optimistic update
-    setIsSaved(!willUnsave);
+      // Optimistic update
+      setIsSaved(!willUnsave);
 
-    // Firestore update
-    await postRef.update({
-      saved_by_user: willUnsave
-        ? firestore.FieldValue.arrayRemove(uid)
-        : firestore.FieldValue.arrayUnion(uid),
-    });
+      // Firestore update
+      await postRef.update({
+        saved_by_user: willUnsave
+          ? firestore.FieldValue.arrayRemove(uid)
+          : firestore.FieldValue.arrayUnion(uid),
+      });
 
-    console.log('Post saved/unsaved successfully!');
-  } catch (error) {
-    console.error('Error saving/unsaving post:', error);
-    setGetError('Error saving post. Please try again.');
-  }
-};
+      console.log('Post saved/unsaved successfully!');
+    } catch (error) {
+      console.error('Error saving/unsaving post:', error);
+      setGetError('Error saving post. Please try again.');
+    }
+  };
 
- 
   const isPostSaved = uid && post.saved_by_user?.includes(uid);
-
 
   // Upload comment to Firestore
   const CommentsToFirebase = async () => {
@@ -218,7 +207,7 @@ useEffect(() => {
         return;
       }
 
-      const {displayName, lastName, profileImage} = userInfoProfileFetch;
+      const { displayName, lastName, profileImage } = userInfoProfileFetch;
       const today = new Date();
       const date = today.toDateString();
       const time = today.toLocaleTimeString([], {
@@ -280,7 +269,7 @@ useEffect(() => {
 
   const handleReportVideo = async () => {
     try {
-      const {displayName, lastName, profileImage} = getUserInfo;
+      const { displayName, lastName, profileImage } = getUserInfo;
       const today = new Date();
       const date = today.toDateString();
       const hour = today.toLocaleTimeString([], {
@@ -310,7 +299,7 @@ useEffect(() => {
             actualPostVideo: post.video,
           }),
         },
-        {merge: true},
+        { merge: true },
       );
       console.log('Post reported successfully');
       setGetError('Post reported successfully');
@@ -328,27 +317,29 @@ useEffect(() => {
       <View style={styles(theme).interactions}>
         {/* Like Button */}
         <TouchableOpacity
-  onPress={handleLike}
-  style={styles(theme).buttonRow}
-  accessibilityLabel="Like Button"
-  accessibilityRole="button"
->
-  <Ionicons
-    name={isLiked ? 'heart' : 'heart-outline'}
-    size={24}
-    color={isLiked ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
-  />
-  <Text style={styles(theme).buttonText}>
-    {likes.length.toLocaleString('en')} {likes.length === 1 ? 'like' : 'likes'}
-  </Text>
-</TouchableOpacity>
+          onPress={handleLike}
+          style={styles(theme).buttonRow}
+          accessibilityLabel="Like Button"
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={isLiked ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isLiked ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
+          />
+          <Text style={styles(theme).buttonText}>
+            {likes.length.toLocaleString('en')}{' '}
+            {likes.length === 1 ? 'like' : 'likes'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Comment Button */}
         <TouchableOpacity
           onPress={openModal}
           style={styles(theme).buttonRow}
           accessibilityLabel="Comments Button"
-          accessibilityRole="button">
+          accessibilityRole="button"
+        >
           <Ionicons
             name="chatbubble-outline"
             size={24}
@@ -362,22 +353,23 @@ useEffect(() => {
 
         {/* Save Button */}
         {/* Save Post Button */}
-       <TouchableOpacity
-  onPress={handleSavePost}
-  accessibilityLabel="Save Post Button"
-  accessibilityRole="button"
->
-  <Ionicons
-    name={isSaved ? 'bookmark' : 'bookmark-outline'}
-    size={24}
-    color={isSaved ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
-  />
-</TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleSavePost}
+          accessibilityLabel="Save Post Button"
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={isSaved ? 'bookmark' : 'bookmark-outline'}
+            size={24}
+            color={isSaved ? '#ff6347' : theme === 'dark' ? '#fff' : '#5b5b5b'}
+          />
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setReportModal(true)}
           accessibilityLabel="Save Post Button"
-          accessibilityRole="button">
+          accessibilityRole="button"
+        >
           <Ionicons
             name={'flag-outline'}
             size={24}
@@ -391,7 +383,8 @@ useEffect(() => {
       <RNModal
         isVisible={reportModal}
         onBackdropPress={() => setReportModal(false)}
-        style={styles(theme).modal}>
+        style={styles(theme).modal}
+      >
         <View style={styles(theme).ReportmodalContent}>
           <Text style={styles(theme).ReportmodalTitle}>Report post</Text>
           <Text style={styles(theme).modalTitleH2}>
@@ -421,7 +414,8 @@ useEffect(() => {
                           ? '#f0f0f0'
                           : '#2a2a2a',
                     },
-                  ]}>
+                  ]}
+                >
                   <Text
                     style={[
                       styles(theme).categoryText,
@@ -433,26 +427,19 @@ useEffect(() => {
                             ? '#000'
                             : '#fff',
                       },
-                    ]}>
+                    ]}
+                  >
                     {category}
                   </Text>
                 </TouchableOpacity>
               ))}
-              {/* <View style={styles(theme).searchContent}>
-                <TextInput
-                  placeholder="Others"
-                  value={reportPostText}
-                  onChangeText={setReportPostText}
-                  style={styles(theme).searchBar}
-                  placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
-                />
-              </View> */}
             </View>
           </ScrollView>
 
           <TouchableOpacity
             onPress={handleReportVideo}
-            style={styles(theme).closeModalButton}>
+            style={styles(theme).closeModalButton}
+          >
             <Text style={styles(theme).closeModalButtonText}>Report</Text>
           </TouchableOpacity>
 
@@ -461,150 +448,159 @@ useEffect(() => {
       </RNModal>
       <Divider />
 
-      {/* Comments Modal */}
+   <Modal
+  animationType="slide"
+  transparent={true}
+  visible={openCommentModal}
+  onRequestClose={closeModal}
+>
+  <KeyboardAvoidingView
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    style={{ flex: 1 }}
+  >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles(theme).modalOverlay}>
+        <View style={styles(theme).modalContent}>
+          <TouchableOpacity
+            onPress={closeModal}
+            style={styles(theme).closeModal}
+          >
+            <Ionicons
+              name="close"
+              size={24}
+              color={theme === 'dark' ? '#fff' : '#121212'}
+            />
+          </TouchableOpacity>
 
-      {/* {commentLoading ? (
-        <ActivityIndicator
-          size="large"
-          color="tomato"
-          style={{marginTop: 16}}
-        />
-      ) : (
-        <> */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={openCommentModal}
-          onRequestClose={closeModal}>
-          <View style={styles(theme).modalOverlay}>
-            <View style={styles(theme).modalContent}>
-              <TouchableOpacity
-                onPress={closeModal}
-                style={styles(theme).closeModal}>
-                <Ionicons
-                  name="close"
-                  size={24}
-                  color={theme === 'dark' ? '#fff' : '#121212'}
-                />
-              </TouchableOpacity>
+          <Text style={styles(theme).modalTitle}>Comments</Text>
 
-              <Text style={styles(theme).modalTitle}>Comments</Text>
-              <ScrollView style={{marginBottom: 10}}>
-                {getComments.length > 0 ? (
-                  getComments.map((comment, index) => (
-                    <View key={index} style={styles(theme).commenterContainer}>
-                      <TouchableOpacity
-                        onPress={() => navigateToProfile(comment.uid)}>
-                        <Image
-                          source={{uri: comment.profileImage}}
-                          style={styles(theme).commentProfileImage}
-                        />
-                      </TouchableOpacity>
+         <ScrollView style={{ marginBottom: 10 }}>
+                         {getComments.length > 0 ? (
+ getComments.map((comment, index) => (
+   <View key={index} style={styles(theme).commenterContainer}>
+     <TouchableOpacity
+       onPress={() => navigateToProfile(comment.uid)}
+     >
+       <Image
+          source={comment.profileImage ? {uri: comment.profileImage}   : require('../../assets/thumblogo.png')}
 
-                      <View style={styles(theme).commentProfileInfo}>
-                        <TouchableOpacity
-                          onPress={() => navigateToProfile(comment.uid)}>
-                          <Text style={styles(theme).CommentDisplayName}>
-                            {comment.displayName} {comment.lastName}
-                          </Text>
-                        </TouchableOpacity>
-                        <Text style={styles(theme).commentText}>
-                          {comment.comment}
-                        </Text>
+         style={styles(theme).commentProfileImage}
+       />
+     </TouchableOpacity>
+         
+     <View style={styles(theme).commentProfileInfo}>
+       <TouchableOpacity
+         onPress={() => navigateToProfile(comment.uid)}
+       >
+         <Text style={styles(theme).CommentDisplayName}>
+           {comment.displayName} {comment.lastName}
+         </Text>
+       </TouchableOpacity>
+       <Text style={styles(theme).commentText}>
+         {comment.comment}
+       </Text>
+         
+       {/* Replies */}
+       {comment.replies?.length > 0 && (
+         <View style={styles(theme).replyList}>
+           {comment.replies.map((reply, replyIndex) => (
+             <View
+               key={replyIndex}
+               style={styles(theme).ReplyCommenterContainer}
+             >
+               <TouchableOpacity
+                 onPress={() => navigateToProfile(reply.uid)}
+               >
+                 <Image
+                 source={reply.profileImage ? {uri: reply.profileImage}   : require('../../assets/thumblogo.png')}
 
-                        {/* Replies */}
-                        {comment.replies?.length > 0 && (
-                          <View style={styles(theme).replyList}>
-                            {comment.replies.map((reply, replyIndex) => (
-                              <View
-                                key={replyIndex}
-                                style={styles(theme).ReplyCommenterContainer}>
-                                <TouchableOpacity
-                                  onPress={() => navigateToProfile(reply.uid)}>
-                                  <Image
-                                    source={{uri: reply.profileImage}}
-                                    style={
-                                      styles(theme).ReplyCommentProfileImage
-                                    }
-                                  />
-                                </TouchableOpacity>
-                                <View
-                                  style={styles(theme).ReplycommentProfileInfo}>
-                                  <TouchableOpacity
-                                    onPress={() =>
-                                      navigateToProfile(reply.uid)
-                                    }>
-                                    <Text style={styles(theme).replyUserName}>
-                                      {reply.displayName} {reply.lastName}
-                                    </Text>
-                                  </TouchableOpacity>
-                                  <Text style={styles(theme).replyText}>
-                                    {reply.reply}
-                                  </Text>
-                                </View>
-                              </View>
-                            ))}
-                          </View>
-                        )}
+                   style={
+                     styles(theme).ReplyCommentProfileImage
+                   }
+                 />
+               </TouchableOpacity>
+               <View
+                 style={styles(theme).ReplycommentProfileInfo}
+               >
+                 <TouchableOpacity
+                   onPress={() => navigateToProfile(reply.uid)}
+                 >
+                   <Text style={styles(theme).replyUserName}>
+                     {reply.displayName} {reply.lastName}
+                   </Text>
+                 </TouchableOpacity>
+                 <Text style={styles(theme).replyText}>
+                   {reply.reply}
+                 </Text>
+               </View>
+             </View>
+           ))}
+         </View>
+       )}
+         
+       {/* Reply Input */}
+       <TouchableOpacity
+         onPress={() => setReplyingToCommentId(comment.id)}
+       >
+         <Text style={styles(theme).replyButton}>Reply</Text>
+       </TouchableOpacity>
+         
+       {replyingToCommentId === comment.id && (
+         <View style={styles(theme).replyInputContainer}>
+           <TextInput
+             style={styles(theme).replyInput}
+             placeholder="Write a reply..."
+             placeholderTextColor={
+               theme === 'dark' ? '#bbb' : '#888'
+             }
+             value={replies[comment.id] || ''}
+             onChangeText={text =>
+               setReplies(prev => ({
+                 ...prev,
+                 [comment.id]: text,
+               }))
+             }
+           />
+           <TouchableOpacity
+             onPress={() => addReplyToFirebase(comment.id)}
+           >
+             <Ionicons name="send" size={20} color="#FF4500" />
+           </TouchableOpacity>
+         </View>
+       )}
+     </View>
+   </View>
+ ))
+                         ) : (
+ <Text
+   style={{ color: theme === 'dark' ? '#fff' : '#121212' }}
+ >
+   No comments yet.
+                           </Text>
+                         )}
+                       </ScrollView>
 
-                        {/* Reply Input */}
-                        <TouchableOpacity
-                          onPress={() => setReplyingToCommentId(comment.id)}>
-                          <Text style={styles(theme).replyButton}>Reply</Text>
-                        </TouchableOpacity>
-
-                        {replyingToCommentId === comment.id && (
-                          <View style={styles(theme).replyInputContainer}>
-                            <TextInput
-                              style={styles(theme).replyInput}
-                              placeholder="Write a reply..."
-                              placeholderTextColor={
-                                theme === 'dark' ? '#bbb' : '#888'
-                              }
-                              value={replies[comment.id] || ''}
-                              onChangeText={text =>
-                                setReplies(prev => ({
-                                  ...prev,
-                                  [comment.id]: text,
-                                }))
-                              }
-                            />
-                            <TouchableOpacity
-                              onPress={() => addReplyToFirebase(comment.id)}>
-                              <Ionicons name="send" size={20} color="#FF4500" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={{color: theme === 'dark' ? '#fff' : '#121212'}}>
-                    No comments yet.
-                  </Text>
-                )}
-              </ScrollView>
-
-              {/* Add Comment Section */}
-              <View style={styles(theme).commentSection}>
-                <TextInput
-                  style={styles(theme).commentInput}
-                  placeholder="Add a comment..."
-                  placeholderTextColor={theme === 'dark' ? '#ccc' : '#666'}
-                  onChangeText={setComment}
-                  value={comment}
-                  maxLength={1500}
-                />
-                <TouchableOpacity onPress={CommentsToFirebase}>
-                  <Ionicons name="send" size={24} color="#ff6347" />
-                </TouchableOpacity>
-              </View>
-            </View>
+          {/* Sticky Comment Input */}
+          <View style={styles(theme).commentSectionSticky}>
+            <TextInput
+              style={styles(theme).commentInput}
+              placeholder="Add a comment..."
+              placeholderTextColor={theme === 'dark' ? '#ccc' : '#666'}
+              onChangeText={setComment}
+              value={comment}
+              maxLength={1500}
+            />
+            <TouchableOpacity onPress={CommentsToFirebase}>
+              <Ionicons name="send" size={24} color="#ff6347" />
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </KeyboardAvoidingView>
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
+  </KeyboardAvoidingView>
+</Modal>
+
       {/* </>
       )} */}
     </View>
@@ -678,12 +674,12 @@ const styles = theme =>
     //   marginTop: 5,
     //   marginLeft: 20,
     // },
-  replyList: {
-  marginTop: 8,
-  paddingLeft: 12,
-  borderLeftWidth: 1,
-  borderColor: theme === 'dark' ? '#333' : '#ccc',
-},
+    replyList: {
+      marginTop: 8,
+      paddingLeft: 12,
+      borderLeftWidth: 1,
+      borderColor: theme === 'dark' ? '#333' : '#ccc',
+    },
     ReplyCommenterContainer: {
       flexDirection: 'row',
       marginTop: 8,
@@ -709,22 +705,22 @@ const styles = theme =>
       color: theme === 'dark' ? '#ccc' : '#444',
     },
     replyInputContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginTop: 8,
-},
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+    },
 
-replyInput: {
-  flex: 1,
-  borderWidth: 1,
-  borderColor: theme === 'dark' ? '#444' : '#ccc',
-  borderRadius: 20,
-  paddingHorizontal: 12,
-  paddingVertical: 6,
-  marginRight: 8,
-  fontSize: 14,
-  color: theme === 'dark' ? '#fff' : '#000',
-},
+    replyInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: theme === 'dark' ? '#444' : '#ccc',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginRight: 8,
+      fontSize: 14,
+      color: theme === 'dark' ? '#fff' : '#000',
+    },
     commentSection: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -740,16 +736,17 @@ replyInput: {
     //   color: theme === 'dark' ? '#fff' : '#121212',
     // },
 
-commentInput: {
+  commentInput: {
   flex: 1,
-  borderWidth: 1,
-  borderColor: theme === 'dark' ? '#444' : '#ccc',
-  borderRadius: 20,
+  paddingVertical: 8,
   paddingHorizontal: 12,
-  paddingVertical: 6,
-  marginRight: 8,
-  fontSize: 14,
-  color: theme === 'dark' ? '#fff' : '#000',
+  borderWidth: 1,
+  borderRadius: 20,
+  borderColor: '#ddd',
+  backgroundColor: '#f9f9f9',
+  marginRight: 10,
+  color: '#000',
+  maxHeight: 120,
 },
 
     // Modal Styles
@@ -839,4 +836,16 @@ commentInput: {
     getError: {
       textAlign: 'center',
     },
+
+    commentSectionSticky: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: 12,
+  paddingVertical: 10,
+  borderTopWidth: 1,
+  borderColor: '#ccc',
+  backgroundColor: '#fff',
+},
+ 
+
   });

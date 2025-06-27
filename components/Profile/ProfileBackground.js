@@ -20,7 +20,10 @@ const ProfileBackground = () => {
     <View>
       {userData && (
         <ImageBackground
-          source={{uri: userData.backgroundImage}}
+          // source={{uri: userData.backgroundImage}}
+         source={userData.backgroundImage ? {uri: userData.backgroundImage}   : require('../../assets/thumbpng.png')}
+        //  source={require('../../assets/thumbpng.png')}
+
           style={styles(theme).backimage}>
           <View style={styles(theme).headerIcons}>
             <TouchableOpacity
@@ -44,7 +47,7 @@ const ProfileBackground = () => {
             </TouchableOpacity>
           </View>
           <Image
-            source={{uri: userData.profileImage}}
+           source={userData.profileImage ? {uri: userData.profileImage}   : require('../../assets/thumblogo.png')}
             style={styles(theme).profileimage}
           />
         </ImageBackground>

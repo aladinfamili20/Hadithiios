@@ -47,7 +47,6 @@ const handleDeleteAccount = async () => {
       await batch.commit();
     };
 
-    // Example deletion calls
     await firestore().collection('users').doc(user.uid).delete();
     await firestore().collection('feedback').doc(user.uid).delete();
     await firestore().collection('notifications').doc(user.uid).delete();
@@ -58,7 +57,6 @@ const handleDeleteAccount = async () => {
     await deleteCollectionDocsByUID('videos');
     await deleteCollectionDocsByUID('events');
 
-    // Finally delete the account
     await user.delete();
     setGetError('Your account has been successfully deleted.');
     navigation.navigate('login');

@@ -125,11 +125,10 @@ import { auth, firestore } from '../../data/Firebase';
                   .map((userInfo, index) => (
                     <Image
                       key={index}
-                      source={{
-                        uri:
-                          userInfo.profileImage ||
-                          'https://via.placeholder.com/50',
-                      }}
+                     
+
+                  source={userInfo.profileImage ? {uri: userInfo.profileImage}   : require('../../assets/thumblogo.png')}
+
                       style={styles(theme).userImage}
                     />
                   ))}

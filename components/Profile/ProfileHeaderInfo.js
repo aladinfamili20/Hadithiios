@@ -1,57 +1,62 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Linking,
-} from 'react-native';
-import React from 'react';
-import DarkMode from '../Theme/DarkMode';
+import React, { useMemo, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Linking, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
+ import DarkMode from '../Theme/DarkMode';
 import { useUser } from '../../data/Collections/FetchUserData';
-
+ 
 const ProfileHeaderInfo = () => {
   const theme = DarkMode();
   const navigation = useNavigation();
   const { userData, isLoading } = useUser();
 
+  const themedStyles = useMemo(() => styles(theme), [theme]);
+
+  const handleEditPress = useCallback(() => {
+    navigation.navigate('profilesetup');
+  }, [navigation]);
+
+  const openUserLink = useCallback(() => {
+    if (userData?.link) Linking.openURL(userData.link);
+  }, [userData?.link]);
+
+  if (isLoading) {
+    return (
+      <SkeletonPlaceholder>
+        <SkeletonPlaceholder.Item width={120} height={20} borderRadius={4} />
+        <SkeletonPlaceholder.Item marginTop={6} width={80} height={20} borderRadius={4} />
+      </SkeletonPlaceholder>
+    );
+  }
+
   return (
     <View>
-      {isLoading ? (
-        <>
-          <Text style={styles(theme).loadingProfile}>Loading profile</Text>
-        </>
-      ) : (
-        <>
-          <View style={styles(theme).profileNames}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('profilesetup')}
-              style={styles(theme).editProfileButton}
-            >
-              <Text style={styles(theme).editProfile}>Edit Profile</Text>
-            </TouchableOpacity>
-            {userData && (
-              <View>
-                <Text style={styles(theme).displayName}>
-                  {userData.displayName} {userData.lastName}
-                </Text>
-                <Text style={styles(theme).username}>{userData.userName}</Text>
+      <View style={themedStyles.profileNames}>
+        <TouchableOpacity onPress={handleEditPress} style={themedStyles.editProfileButton}>
+          <Text style={themedStyles.editProfile}>Edit Profile</Text>
+        </TouchableOpacity>
 
-                 <TouchableOpacity
-                  onPress={() => Linking.openURL(userData?.link)}>
-                  <Text style={styles(theme).link}>{userData?.link}</Text>
-                </TouchableOpacity>
-          
-              </View>
-            )}
+        {userData && (
+          <View>
+            <Text style={themedStyles.displayName}>
+              {userData.displayName} {userData.lastName}
+            </Text>
+            <Text style={themedStyles.username}>{userData.userName}</Text>
+
+            {userData?.link ? (
+              <TouchableOpacity onPress={openUserLink}>
+                <Text style={themedStyles.link}>{userData.link}</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
-        </>
-      )}
+        )}
+      </View>
     </View>
   );
 };
 
-export default ProfileHeaderInfo;
+export default React.memo(ProfileHeaderInfo);
+
 
 const styles = theme =>
   StyleSheet.create({

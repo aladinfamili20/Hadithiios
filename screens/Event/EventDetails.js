@@ -224,7 +224,8 @@ import { truncateString } from '../../components/TextShortner';
             {eventDetails.eventInterestedUsers.slice(0, 3).map((user, index) => (
               <Image
                 key={index}
-                source={{uri: user.profileImage}}
+                   source={user.profileImage ? {uri: user.profileImage}   : require('../../assets/thumblogo.png')}
+
                 style={styles(theme).userImage}
               />
             ))}

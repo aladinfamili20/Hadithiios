@@ -111,7 +111,8 @@ const VideoHeader = ({post, user}) => {
         <View style={{flexDirection: 'row'}}>
           <TouchableOpacity onPress={() => navigateToProfile(post?.uid)}>
             <Image
-              source={{uri: post?.profileImage}}
+               source={post?.profileImage ? {uri: post?.profileImage}   : require('../../assets/thumblogo.png')}
+
               style={styles(theme).profileImage}
             />
           </TouchableOpacity>
