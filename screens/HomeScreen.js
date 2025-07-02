@@ -53,8 +53,9 @@ export const fetchPostsByFollowing = async (
   const blockedUids = await fetchBlockedUids();
 
   const postsRef = collection(db, 'posts');
-  const chunks = chunk(following, 10);
-  const allPosts = [];
+  const uidsOnly = following.map(f => f.uid); // extract uid from objects
+const chunks = chunk(uidsOnly, 10);
+   const allPosts = [];
 
   for (const group of chunks) {
     let q = query(
@@ -185,25 +186,26 @@ const HomeScreen = () => {
       ) : (
         <FlatList
           data={postData}
-          keyExtractor={item => item.id?.toString() || Math.random().toString()}
+          keyExtractor={(item, index) => item.id?.toString() || index.toString()}
           contentContainerStyle={{paddingBottom: 100}}
           renderItem={({item, index}) => renderPost({item, index})}
           ListHeaderComponent={HomeFeedHeader}
           ListEmptyComponent={
             <View style={styles(theme).noPostsContainer}>
               <Text style={styles(theme).noPostsText}>
-                No posts available. Follow other users to see their posts here.
+                No posts available. Follow users to see their posts here.
               </Text>
               <FollowUsers />
             </View>
           }
-           ListFooterComponent={
-              fetchingMore && (
-                <View style={styles(theme).loadingMoreContainer}>
-                  <ActivityIndicator size="small" color="#FF4500" />
-                </View>
-              )
-            }
+          ListFooterComponent={
+  fetchingMore ? (
+    <View style={styles(theme).loadingMoreContainer}>
+      <ActivityIndicator size="small" color="#FF4500" />
+    </View>
+  ) : null
+}
+
 
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.2}

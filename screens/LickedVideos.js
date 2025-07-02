@@ -73,12 +73,13 @@ const LickedVideos = () => {
       ) : (
         <>
           {savedPosts.length === 0 ? (
-            <Text style={styles(theme).noVideo}>No licked videos yet.</Text>
+            <Text style={styles(theme).noVideo}>No licked video(s) yet.</Text>
           ) : (
             <FlatList
               data={savedPosts}
               keyExtractor={item => item.id}
               renderItem={({item}) => <VideoHandler post={item} />}
+              style={styles(theme).videoContainer}
             />
           )}
         </>
@@ -122,4 +123,8 @@ const styles = theme =>
       justifyContent: 'center',
       color: theme === 'dark' ? '#fff' : '#121212',
     },
+    videoContainer:{
+            backgroundColor: theme === 'dark' ? '#121212' : '#fff',
+
+    }
   });

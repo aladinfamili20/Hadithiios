@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Image,
   ImageBackground,
   StyleSheet,
@@ -7,50 +8,68 @@ import {
 } from 'react-native';
 import React from 'react';
 import DarkMode from '../Theme/DarkMode';
-import {useNavigation} from '@react-navigation/native';
-import {useUser} from '../../data/Collections/FetchUserData';
+import { useNavigation } from '@react-navigation/native';
+import { useUser } from '../../data/Collections/FetchUserData';
 import Ionicons from 'react-native-vector-icons/Ionicons';
- 
+
 const ProfileBackground = () => {
   const theme = DarkMode();
   const navigation = useNavigation();
-  const {userData} = useUser();
+  const { userData, isLoading } = useUser();
 
   return (
     <View>
-      {userData && (
-        <ImageBackground
-          // source={{uri: userData.backgroundImage}}
-         source={userData.backgroundImage ? {uri: userData.backgroundImage}   : require('../../assets/thumbpng.png')}
-        //  source={require('../../assets/thumbpng.png')}
+      {isLoading ? (
+        <View style={styles(theme).loadingContainer}>
+          <ActivityIndicator size="large" color="tomato" />
+        </View>
+      ) : (
+        <View>
+          {userData && (
+            <ImageBackground
+              // source={{uri: userData.backgroundImage}}
+              source={
+                userData.backgroundImage
+                  ? { uri: userData.backgroundImage }
+                  : require('../../assets/thumbpng.png')
+              }
+              //  source={require('../../assets/thumbpng.png')}
 
-          style={styles(theme).backimage}>
-          <View style={styles(theme).headerIcons}>
-            <TouchableOpacity
-              style={styles(theme).arrowBackIcon}
-              // onPress={() => navigation.navigate('Home')}
-              >
-              {/* <Ionicons
+              style={styles(theme).backimage}
+            >
+              <View style={styles(theme).headerIcons}>
+                <TouchableOpacity
+                  style={styles(theme).arrowBackIcon}
+                  // onPress={() => navigation.navigate('Home')}
+                >
+                  {/* <Ionicons
                 name="chevron-back-outline"
                 size={24}
                 color={theme === 'dark' ? '#fff' : '#121212'}
               /> */}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles(theme).dotsIcon}
-              onPress={() => navigation.navigate('Settings')}>
-              <Ionicons
-                name="settings-outline"
-                size={24}
-                color={theme === 'dark' ? '#fff' : '#121212'}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles(theme).dotsIcon}
+                  onPress={() => navigation.navigate('Settings')}
+                >
+                  <Ionicons
+                    name="settings-outline"
+                    size={24}
+                    color={theme === 'dark' ? '#fff' : '#121212'}
+                  />
+                </TouchableOpacity>
+              </View>
+              <Image
+                source={
+                  userData.profileImage
+                    ? { uri: userData.profileImage }
+                    : require('../../assets/thumblogo.png')
+                }
+                style={styles(theme).profileimage}
               />
-            </TouchableOpacity>
-          </View>
-          <Image
-           source={userData.profileImage ? {uri: userData.profileImage}   : require('../../assets/thumblogo.png')}
-            style={styles(theme).profileimage}
-          />
-        </ImageBackground>
+            </ImageBackground>
+          )}
+        </View>
       )}
     </View>
   );
@@ -67,6 +86,10 @@ const styles = theme =>
     },
     profileContents: {
       margin: 10,
+    },
+    loadingContainer:{
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     backimage: {
       width: '100%',

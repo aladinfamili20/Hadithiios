@@ -82,7 +82,7 @@ const SavedPhotos = () => {
       ) : (
         <>
           {savedPosts.length === 0 ? (
-            <Text style={styles(theme).noPhoto}>No saved post(s) yet.</Text>
+            <Text style={styles(theme).noPhoto}>No saved photo(s) yet.</Text>
           ) : (
             <FlatList
               data={savedPosts}

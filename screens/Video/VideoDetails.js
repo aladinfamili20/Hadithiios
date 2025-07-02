@@ -25,6 +25,7 @@ import { useUser } from '../../data/Collections/FetchUserData';
 import ProfileInfo from '../../components/Video/ProfileInfo';
 import VideoInfo from '../../components/Video/VideoInfo';
 import VideoCommentSection from '../../components/Video/VideoCommentSection';
+import VideoInteractionScreen from '../../components/Video/VideoInteractionScreen';
 // import Divider from "../components/Divider";
 
 const VideoDetails = () => {
@@ -176,6 +177,8 @@ const VideoDetails = () => {
           <>
           {/* Posted video and caption*/}
           <VideoInfo/>
+                         <VideoInteractionScreen post={postDetails}/>
+
           <VideoCommentSection/>
           </>
         )
@@ -365,6 +368,7 @@ const styles = theme =>
       // backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       borderRadius: 10,
       alignItems: 'center',
+      marginBottom: 40
     },
     commentInput: {
       width: Dimensions.get('window').width * 0.7,

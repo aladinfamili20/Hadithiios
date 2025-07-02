@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
-  RefreshControl,
   Alert,
 } from 'react-native';
 import firestore, { Timestamp } from '@react-native-firebase/firestore';
@@ -20,10 +19,6 @@ import Divider from '../components/Divider';
 import DarkMode from '../components/Theme/DarkMode';
 import { useUser } from '../data/Collections/FetchUserData';
 import { auth } from '../data/Firebase';
-import { currentLoggedInUserData } from '../components/FetchFollowingData';
-// import ProgressBar from 'react-native-progress/Bar';
-
-const PAGE_SIZE = 15;
 
 const FollowersScreen = () => {
   const theme = DarkMode();
@@ -32,20 +27,13 @@ const FollowersScreen = () => {
   const uid = user?.uid;
 
   const [loading, setLoading] = useState(false);
-  const { getCurrentLoggedIn } = currentLoggedInUserData();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [postData, setPostData] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [hasMorePosts, setHasMorePosts] = useState(true);
-  const [fetchingMore, setFetchingMore] = useState(false);
-  const [lastPostDoc, setLastPostDoc] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [followers, setFollowers] = useState([]);
   const [profileData, setProfileData] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [currentLoggedInUser, setCurrentLoggedInUser] = useState(null);
-  const [publicProfile, setPublicProfile] = useState(null);
+const [followStatus, setFollowStatus] = useState({});
 
   const navigation = useNavigation();
 
@@ -53,9 +41,8 @@ const FollowersScreen = () => {
     setProfileData(userData);
   }, [userData]);
 
-  useEffect(() => {
-    setCurrentLoggedInUser(getCurrentLoggedIn);
-  }, [getCurrentLoggedIn]);
+ 
+
 
   const navigateToProfile = userId => {
     navigation.dispatch(
@@ -110,44 +97,6 @@ const FollowersScreen = () => {
     }, 400); // debounce time in ms
   }, [searchQuery]);
 
-  //   fetch posts
-  const fetchPosts = async (loadMore = false) => {
-    if (fetchingMore || !hasMorePosts) return;
-
-    setFetchingMore(true);
-    const postRef = firestore()
-      .collection('posts')
-      .orderBy('createdAt', 'desc');
-
-    try {
-      const snapshot = loadMore
-        ? await postRef.startAfter(lastPostDoc).limit(PAGE_SIZE).get()
-        : await postRef.limit(PAGE_SIZE).get();
-
-      const newDocs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      setPostData(prev => (loadMore ? [...prev, ...newDocs] : newDocs));
-      setLastPostDoc(snapshot.docs[snapshot.docs.length - 1]);
-
-      if (snapshot.docs.length < PAGE_SIZE) setHasMorePosts(false);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-    } finally {
-      setFetchingMore(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    setHasMorePosts(true);
-    setLastPostDoc(null);
-    setRefreshing(false);
-  };
-
   //   Fetch followers
 
   useEffect(() => {
@@ -172,68 +121,99 @@ const FollowersScreen = () => {
   }, [uid]);
 
   //   handle follow back
+const followUser = async (currentUserId, targetUserId) => {
+  if (!currentUserId || !targetUserId || !profileData) return;
 
-  const followUser = async (currentUserId, targetUserId) => {
-    if (!currentUserId || !targetUserId || !profileData) return;
+  try {
+    const batch = firestore().batch();
+    const currentUserRef = firestore().collection('users').doc(currentUserId);
+    const targetUserRef = firestore().collection('users').doc(targetUserId);
 
-    try {
-      const batch = firestore().batch();
-      const currentUserRef = firestore().collection('users').doc(currentUserId);
-      const targetUserRef = firestore().collection('users').doc(targetUserId);
+    const { displayName, lastName, profileImage } = profileData;
 
-      const { displayName, lastName, profileImage } = profileData;
+    // If already following — unfollow
+    if (isFollowing) {
+      // Get current user's document
+      const currentUserDoc = await currentUserRef.get();
+      const currentUserData = currentUserDoc.data();
+      const updatedFollowing = (currentUserData.following || []).filter(
+        u => u.uid !== targetUserId
+      );
+      batch.update(currentUserRef, { following: updatedFollowing });
 
-      // Remove first (clean state)
+      // Get target user's followers and filter
+      const targetUserDoc = await targetUserRef.get();
+      const targetUserData = targetUserDoc.data();
+      const updatedFollowers = (targetUserData.followers || []).filter(
+        u => u.uid !== currentUserId
+      );
+      batch.update(targetUserRef, { followers: updatedFollowers });
+
+      setIsFollowing(false);
+      Alert.alert('Unfollowed');
+    } else {
+      // FOLLOW
+
+      // 1. Get info of the user you're following
+      const targetUserDoc = await targetUserRef.get();
+      const targetData = targetUserDoc.data();
+
+      const targetDisplayName = targetData?.displayName || '';
+      const targetLastName = targetData?.lastName || '';
+      const targetProfileImage = targetData?.profileImage || '';
+
+      // 2. Add to "following" array of current user
       batch.update(currentUserRef, {
-        following: firestore.FieldValue.arrayRemove(targetUserId),
-      });
-      batch.update(targetUserRef, {
-        followers: firestore.FieldValue.arrayRemove({
-          displayName,
-          lastName,
-          profileImage,
-          uid: currentUserId,
+        following: firestore.FieldValue.arrayUnion({
+          uid: targetUserId,
+          displayName: targetDisplayName,
+          lastName: targetLastName,
+          profileImage: targetProfileImage,
           timestamp: Timestamp.now(),
         }),
       });
 
-      // Then add again
-      batch.update(currentUserRef, {
-        following: firestore.FieldValue.arrayUnion(targetUserId),
-      });
+      // 3. Add to "followers" array of target user
       batch.update(targetUserRef, {
         followers: firestore.FieldValue.arrayUnion({
+          uid: currentUserId,
           displayName,
           lastName,
           profileImage,
-          uid: currentUserId,
           timestamp: Timestamp.now(),
         }),
       });
 
-      await batch.commit();
-      setIsFollowing(false);
-      Alert.alert(isFollowing ? 'Unfollowed' : 'Followed');
-    } catch (error) {
-      console.error('Error following back:', error);
-    }
-  };
+        await firestore().collection('notifications').add({
+        recipientId: targetUserId,
+        type: 'new_follower',
+        followerId: currentUserId,
+        followerName: `${displayName} ${lastName}`,
+        followerImage: profileImage,
+        timestamp: firestore.Timestamp.now(),
+        read: false,
+      });
+    
 
- 
-  useEffect(() => {
-    if (
-      getCurrentLoggedIn?.following &&
-      Array.isArray(getCurrentLoggedIn.following) &&
-      publicProfile?.uid
-    ) {
-      const isAlreadyFollowing = getCurrentLoggedIn.following.includes(
-        publicProfile.uid,
-      );
-      setIsFollowing(isAlreadyFollowing);
+      setIsFollowing(true);
+      Alert.alert('Followed');
     }
-  }, [getCurrentLoggedIn, publicProfile]);
 
-  const renderFollower = ({ item }) => (
+    await batch.commit();
+  } catch (error) {
+    console.error('Error following/unfollowing:', error);
+  }
+};
+
+
+
+
+
+
+  const renderFollower = ({ item }) => {
+      const isFollowingUser = followStatus[item.uid] || false;
+
+    return (
     <View style={styles(theme).NotificationContainer}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <TouchableOpacity onPress={() => navigateToProfile(item.uid)}>
@@ -256,14 +236,17 @@ const FollowersScreen = () => {
           <Text style={styles(theme).alert}>New follower</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={() => followUser(uid, item.uid)}>
-        <Text style={styles(theme).followback}>
-          Follow back
-          {/* {isFollowing ? 'Unfollow' : 'Follow'} */}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => followUser(uid, item.uid)}>
+      <Text style={styles(theme).followback}>
+        {isFollowingUser ? 'Unfollow' : 'Follow back'}
+      </Text>
+    </TouchableOpacity>
     </View>
-  );
+
+    )
+  }
+ 
+ 
 
   return (
     <View style={styles(theme).searchContainer}>
@@ -304,26 +287,10 @@ const FollowersScreen = () => {
         </View>
       ) : searchQuery.trim().length === 0 ? (
         <FlatList
-          //   data={postData}
           data={followers}
           keyExtractor={(item, index) => `${item.uid}-${index}`}
           renderItem={renderFollower}
-          //   keyExtractor={(item, index) =>
-          //     item.id ? item.id.toString() : index.toString()
-          //   }
-
-          onEndReached={() => fetchPosts(true)}
           onEndReachedThreshold={0.1}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListFooterComponent={
-            fetchingMore && (
-              <View style={{ padding: 10 }}>
-                <ActivityIndicator size="small" color="tomato" />
-              </View>
-            )
-          }
         />
       ) : isLoadingUsers ? (
         <View style={[styles(theme).container1, styles(theme).horizontal]}>

@@ -58,7 +58,9 @@ export const fetchPostsByFollowing = async (
   }
 
   const postsRef = collection(db, 'videos');
-  const chunks = chunk(following, 10);
+    const uidsOnly = following.map(f => f.uid); // extract uid from objects
+
+  const chunks = chunk(uidsOnly, 10);
   const allPosts = [];
 
   for (const group of chunks) {

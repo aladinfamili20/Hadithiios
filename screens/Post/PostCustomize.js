@@ -30,8 +30,8 @@ const PostCustomize = () => {
   const user = auth().currentUser;
   const uid = user?.uid;
   const [caption, setCaption] = useState('');
-  const {userData} = useUser();
-  const [isLoading, setIsLoading] = useState(false);
+  const {userData, isLoading} = useUser();
+  const [loading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const navigation = useNavigation();
   const theme = DarkMode();
@@ -186,6 +186,32 @@ const PostCustomize = () => {
     };
   }, []);
 
+
+
+
+ 
+   if (isLoading || !userData) {
+     return (
+       <View style={styles(theme).container}>
+         <ActivityIndicator size="large" color="tomato" />
+         <Text
+           style={{
+             marginTop: 15,
+             fontSize: 16,
+             color: '#555',
+             textAlign: 'center',
+             paddingHorizontal: 20,
+             fontStyle: 'italic',
+           }}
+         >
+           If the profile is loading slowly, please close and reopen the app to
+           refresh.
+         </Text>
+       </View>
+     );
+   }
+
+
   return (
     
     <KeyboardAvoidingView
@@ -252,7 +278,7 @@ const PostCustomize = () => {
         </View>
 
         {/* Submit Button */}
-        {isLoading ? (
+        {loading ? (
           <ActivityIndicator
             size="large"
             color="tomato"
@@ -337,7 +363,7 @@ const styles = theme => ({
     backgroundColor: theme === 'light' ? '#fff' : '#121212',
   },
   scrollViewContainer: {
-    margin: 10,
+    margin: 5,
   },
   uploadMode: {
     marginBottom: 16,

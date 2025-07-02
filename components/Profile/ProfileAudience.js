@@ -13,7 +13,7 @@ const ProfileAudience = ({theme, followers, following}) => {
                 onPress={()=>navigation.navigate('FollowersScreen')}
                 >
                   <Text style={styles(theme).follower}>
-                    {followers.length || 0}
+                    {followers.length || 0 }
                   </Text>
                   <Text style={styles(theme).followerLabel}>Followers</Text>
                 </TouchableOpacity>

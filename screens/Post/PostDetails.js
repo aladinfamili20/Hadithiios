@@ -31,7 +31,6 @@ import { useUser } from '../../data/Collections/FetchUserData';
 import ProfileInfo from '../../components/PostDetails/ProfileInfo';
 import ImageInfo from '../../components/PostDetails/ImageInfo';
 import CommentSection from '../../components/PostDetails/CommentSection';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { ScrollView } from 'react-native-gesture-handler';
 
 const PostDetails = () => {

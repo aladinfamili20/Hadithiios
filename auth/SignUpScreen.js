@@ -18,7 +18,6 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DarkMode from '../components/Theme/DarkMode';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const SignUpScreen = () => {
   const theme = DarkMode();

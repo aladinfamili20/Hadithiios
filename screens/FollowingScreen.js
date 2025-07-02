@@ -183,43 +183,71 @@ const FollowingScreen = () => {
 
       const { displayName, lastName, profileImage } = profileData;
 
-      // Remove first (clean state)
-      batch.update(currentUserRef, {
-        following: firestore.FieldValue.arrayRemove(targetUserId),
-      });
-      batch.update(targetUserRef, {
-        followers: firestore.FieldValue.arrayRemove({
-          displayName,
-          lastName,
-          profileImage,
-          uid: currentUserId,
-          timestamp: Timestamp.now(),
-        }),
+      const currentUserDoc = await currentUserRef.get();
+      const currentUserData = currentUserDoc.data();
+      const updatedFollowing = (currentUserData.following || []).filter(
+        f => f.uid !== targetUserId,
+      );
+
+      if (isFollowing) {
+        // UNFOLLOW
+        batch.update(currentUserRef, {
+          following: updatedFollowing,
+        });
+
+        //       await currentUserRef.update({
+        //   following: updatedFollowing,
+        // });
+
+        // followers is an array of objects, so manual filter is better than arrayRemove
+        const targetDoc = await targetUserRef.get();
+        const targetData = targetDoc.data();
+        const updatedFollowers = (targetData.followers || []).filter(
+          f => f.uid !== currentUserId,
+        );
+
+        batch.update(targetUserRef, {
+          followers: updatedFollowers,
+        });
+
+        setIsFollowing(false);
+        Alert.alert('Unfollowed');
+      } else {
+        // FOLLOW
+        batch.update(currentUserRef, {
+          following: firestore.FieldValue.arrayUnion(targetUserId),
+        });
+
+        batch.update(targetUserRef, {
+          followers: firestore.FieldValue.arrayUnion({
+            displayName,
+            lastName,
+            profileImage,
+            uid: currentUserId,
+            timestamp: Timestamp.now(),
+          }),
+        });
+
+        await firestore().collection('notifications').add({
+        recipientId: targetUserId,
+        type: 'new_follower',
+        followerId: currentUserId,
+        followerName: `${displayName} ${lastName}`,
+        followerImage: profileImage,
+        timestamp: firestore.Timestamp.now(),
+        read: false,
       });
 
-      // Then add again
-      batch.update(currentUserRef, {
-        following: firestore.FieldValue.arrayUnion(targetUserId),
-      });
-      batch.update(targetUserRef, {
-        followers: firestore.FieldValue.arrayUnion({
-          displayName,
-          lastName,
-          profileImage,
-          uid: currentUserId,
-          timestamp: Timestamp.now(),
-        }),
-      });
+        setIsFollowing(true);
+        Alert.alert('Followed');
+      }
 
       await batch.commit();
-      setIsFollowing(false);
-      Alert.alert(isFollowing ? 'Unfollowed' : 'Followed');
     } catch (error) {
-      console.error('Error following back:', error);
+      console.error('Error updating follow state:', error);
     }
   };
 
- 
   useEffect(() => {
     if (
       getCurrentLoggedIn?.following &&
@@ -233,37 +261,40 @@ const FollowingScreen = () => {
     }
   }, [getCurrentLoggedIn, publicProfile]);
 
-  const renderFollower = ({ item }) => (
-    <View style={styles(theme).NotificationContainer}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity onPress={() => navigateToProfile(item.uid)}>
-          <Image
-            style={styles(theme).image}
-            source={
-              item.profileImage
-                ? { uri: item.profileImage }
-                : require('../assets/thumblogo.png')
-            }
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigateToProfile(item.uid)}
-          style={{ marginLeft: 10 }}
-        >
-          <Text style={styles(theme).displayName}>
-            {item.displayName} {item.lastName}
-          </Text>
-          <Text style={styles(theme).alert}>New follower</Text>
+  const renderFollower = ({ item }) => {
+    // Skip rendering if essential data is missing
+    if (!item?.displayName || !item?.profileImage) return null;
+
+    return (
+      <View style={styles(theme).NotificationContainer}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => navigateToProfile(item.uid)}>
+            <Image
+              style={styles(theme).image}
+              source={
+                item.profileImage
+                  ? { uri: item.profileImage }
+                  : require('../assets/thumblogo.png') // Fallback won't be used here because we skip items with no image
+              }
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigateToProfile(item.uid)}
+            style={{ marginLeft: 10 }}
+          >
+            <Text style={styles(theme).displayName}>
+              {item.displayName} {item.lastName || ''}
+            </Text>
+            <Text style={styles(theme).alert}>Following</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity onPress={() => followUser(uid, item.uid)}>
+          <Text style={styles(theme).followback}>Unfollow</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={() => followUser(uid, item.uid)}>
-        <Text style={styles(theme).followback}>
-          Follow back
-          {/* {isFollowing ? 'Unfollow' : 'Follow'} */}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles(theme).searchContainer}>
@@ -308,10 +339,6 @@ const FollowingScreen = () => {
           data={followers}
           keyExtractor={(item, index) => `${item.uid}-${index}`}
           renderItem={renderFollower}
-          //   keyExtractor={(item, index) =>
-          //     item.id ? item.id.toString() : index.toString()
-          //   }
-
           onEndReached={() => fetchPosts(true)}
           onEndReachedThreshold={0.1}
           refreshControl={

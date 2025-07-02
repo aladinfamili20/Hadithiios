@@ -1,52 +1,58 @@
 /* eslint-disable no-unused-vars */
-import { StyleSheet} from 'react-native';
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, firestore } from '../Firebase';
-import { useAuth } from '../../auth/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const UserContext = createContext();
 
-export const FetchUserData = ({children}) => {
-    const [userData, setUserData] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-console.log('Logged in user data:', userData);
+export const FetchUserData = ({ children }) => {
+  const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    useEffect(() => {
-      const user = auth().currentUser;
+  useEffect(() => {
+    const fetchUser = async () => {
+      setIsLoading(true);
+      try {
+        const user = auth().currentUser;
 
-      if (user) {
-        const uid = user.uid;
+        if (user) {
+          const uid = user.uid;
 
-        const unsubscribe = firestore()
-          .collection('profileUpdate')
-          .doc(uid)
-          .onSnapshot(
-            snapshot => {
-              if (snapshot.exists) {
-                setUserData(snapshot.data());
-              } else {
-                setUserData(null);
-              }
-              setIsLoading(false);
-            },
-            err => {
-              setError(err);
-              setIsLoading(false);
-            }
-          );
+          // Check cached data
+          const cached = await AsyncStorage.getItem(`user_${uid}`);
+          if (cached) {
+            setUserData(JSON.parse(cached)); // Show cached immediately
+          }
 
-        return () => unsubscribe();
-      } else {
-        setUserData(null);
+          // Fetch fresh data from Firestore
+          const doc = await firestore().collection('profileUpdate').doc(uid).get();
+          if (doc.exists) {
+            const data = doc.data();
+            setUserData(data);
+            await AsyncStorage.setItem(`user_${uid}`, JSON.stringify(data));
+          } else {
+            setUserData(null);
+          }
+        } else {
+          setUserData(null);
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setError(err);
+      } finally {
         setIsLoading(false);
       }
-    }, []);
-    return (
-        <UserContext.Provider value={{ userData, isLoading, error }}>
-          {children}
-        </UserContext.Provider>
-      );
+    };
+
+    fetchUser();
+  }, []);
+
+  return (
+    <UserContext.Provider value={{ userData, isLoading, error }}>
+      {children}
+    </UserContext.Provider>
+  );
 };
 
-export const useUser = ()=> useContext(UserContext);
+export const useUser = () => useContext(UserContext);

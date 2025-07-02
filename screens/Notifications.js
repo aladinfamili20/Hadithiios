@@ -125,7 +125,7 @@ const Notifications = () => {
       });
 
       await batch.commit();
-      Alert.alert(isFollowing ? 'Unfollowed' : 'Followed');
+      Alert.alert('Follow back');
     } catch (error) {
       console.error('Error following back:', error);
     }

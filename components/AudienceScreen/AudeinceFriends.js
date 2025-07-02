@@ -27,6 +27,8 @@ const AudienceFriends = () => {
   const [getProfInfo, setGetProfInfo] = useState(null);
   const [getError, setGetError] = useState('');
 
+  console.log("Profile info",getProfInfo)
+
   useEffect(()=>{
     setGetProfInfo(userData);
   },[userData])
@@ -45,20 +47,7 @@ const AudienceFriends = () => {
     setCurrentLoggedInUser(getCurrentLoggedIn);
   }, [getCurrentLoggedIn]);
 
-  // useEffect(() => {
-  //   if (
-  //     getCurrentLoggedIn?.following &&
-  //     Array.isArray(getCurrentLoggedIn.following) &&
-  //     publicProfile?.uid
-  //   ) {
-  //     const isAlreadyFollowing = getCurrentLoggedIn.following.includes(publicProfile.uid);
-  //     setIsFollowing(isAlreadyFollowing);
-  //   }
-  // }, [getCurrentLoggedIn, publicProfile]);
-
  
-
-
 const handleFollow = async () => {
   const currentUserId = user?.uid;
   const targetUserId = publicProfile?.uid;
@@ -69,13 +58,22 @@ const handleFollow = async () => {
 
         const { displayName, lastName, profileImage } = getProfInfo || {};
 
+const currentUserDoc = await currentUserRef.get();
+const currentUserData = currentUserDoc.data();
+const updatedFollowing = (currentUserData.following || []).filter(
+  f => f.uid !== targetUserId
+);
+
+ 
+
+
  
   try {
     if (isFollowing) {
       // UNFOLLOW
       await currentUserRef.update({
-        following: firestore.FieldValue.arrayRemove(targetUserId),
-      });
+  following: updatedFollowing,
+});
 
       await targetUserRef.update({
         followers: firestore.FieldValue.arrayRemove({
@@ -139,7 +137,9 @@ useEffect(() => {
     Array.isArray(getCurrentLoggedIn.following) &&
     publicProfile?.uid
   ) {
-    const isAlreadyFollowing = getCurrentLoggedIn.following.includes(publicProfile.uid);
+const isAlreadyFollowing = getCurrentLoggedIn.following.some(
+  f => f.uid === publicProfile.uid
+);
     setIsFollowing(isAlreadyFollowing);
   }
 }, [getCurrentLoggedIn, publicProfile]);
@@ -187,7 +187,6 @@ export default AudienceFriends;
 const styles = theme =>
   StyleSheet.create({
     container: {
-      padding: 20,
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       flex: 1,
     },

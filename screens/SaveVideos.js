@@ -103,7 +103,7 @@ const SavedVideos = () => {
       ) : (
         <>
           {saveVideos.length === 0 ? (
-            <Text style={{textAlign: 'center'}}>No saved videos yet.</Text>
+            <Text style={{textAlign: 'center'}}>No saved video(s) yet.</Text>
           ) : (
             <FlatList
               data={saveVideos}

@@ -207,7 +207,8 @@ const ProfileSetup = () => {
   >
       
         <ImageBackground
-          source={{ uri: backgroundImageBanner || defaultBannerImage }}
+          // source={{ uri: backgroundImageBanner || defaultBannerImage }}
+           source={ backgroundImageBanner ? { uri: backgroundImageBanner } : require('../assets/thumbpng.png') }
           style={themedStyles.bannerImage}
         >
           <View style={themedStyles.headerIcons}>
@@ -217,13 +218,18 @@ const ProfileSetup = () => {
             >
               <Ionicons name="chevron-back-outline" size={24} color="#000" />
             </TouchableOpacity>
-            <TouchableOpacity onPress={uploadBackImg}>
+
+            <TouchableOpacity onPress={uploadBackImg}
+              style={themedStyles.iconButton}
+            >
               <Ionicons name="add" size={24} color="#121212" />
             </TouchableOpacity>
           </View>
 
           <Image
-            source={{ uri: profileEditImage || defaultProfileImage }}
+            // source={{ uri: profileEditImage || defaultProfileImage }}
+            source={ profileEditImage ? { uri: profileEditImage } : require('../assets/thumblogo.png') }
+
             style={themedStyles.profileImage}
           />
           <TouchableOpacity

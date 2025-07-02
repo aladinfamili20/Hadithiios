@@ -9,7 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  StyleSheet
+  StyleSheet,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -18,7 +18,7 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import DarkMode from '../Theme/DarkMode';
 import FecthUserProfile from '../FetchUserProfile';
- 
+
 const REPORT_CATEGORIES = [
   'Suicide',
   'Self-injury',
@@ -42,8 +42,8 @@ const ProfileHeader = ({ userData }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [getError, setGetError] = useState('');
 
-   const getUserInfo = userprofile;
-const publicProfile = userprofile;
+  const getUserInfo = userprofile;
+  const publicProfile = userprofile;
 
   // Block User Handler
   const handleBlockUser = async () => {
@@ -63,7 +63,10 @@ const publicProfile = userprofile;
           lastName: publicProfile?.lastName,
           profileimage: publicProfile?.profileImage,
           date: now.toDateString(),
-          hours: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          hours: now.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
           blockedDate: now.toLocaleDateString(),
         });
 
@@ -101,7 +104,10 @@ const publicProfile = userprofile;
             accountReports: firestore.FieldValue.arrayUnion({
               reportId,
               date: now.toDateString(),
-              hour: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              hour: now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
               time: now.toLocaleDateString(),
               selectedCategory,
               reportedAccountUID: uid,
@@ -114,7 +120,7 @@ const publicProfile = userprofile;
               reportingUserProfileImage: profileImage,
             }),
           },
-          { merge: true }
+          { merge: true },
         );
 
       Alert.alert('Reported', 'The account has been reported.');
@@ -123,12 +129,12 @@ const publicProfile = userprofile;
     } catch (error) {
       console.error('Error reporting account:', error);
       setGetError(
-        'There was an error while trying to report this account. Please try again later.'
+        'There was an error while trying to report this account. Please try again later.',
       );
     }
   };
 
-  const handleReportCategoryPress = useCallback((category) => {
+  const handleReportCategoryPress = useCallback(category => {
     setSelectedCategory(category);
   }, []);
 
@@ -144,11 +150,11 @@ const publicProfile = userprofile;
         <>
           <ImageBackground
             source={
-    publicProfile?.backgroundImage
-      ? { uri: publicProfile.backgroundImage }
-      : require('../../assets/thumbpng.png')
-  }
-              // source={require('../../assets/thumbpng.png')}
+              publicProfile?.backgroundImage
+                ? { uri: publicProfile.backgroundImage }
+                : require('../../assets/thumbpng.png')
+            }
+            // source={require('../../assets/thumbpng.png')}
             style={themedStyles.backimage}
           >
             <View style={themedStyles.headerIcons}>
@@ -179,9 +185,10 @@ const publicProfile = userprofile;
 
             <Image
               // source={{ uri: publicProfile?.profileImage }}
-              source={ publicProfile.profileImage
-                 ? { uri: publicProfile.profileImage }
-      : require('../../assets/thumblogo.png')
+              source={
+                publicProfile.profileImage
+                  ? { uri: publicProfile.profileImage }
+                  : require('../../assets/thumblogo.png')
               }
               style={themedStyles.profileimage}
             />
@@ -196,7 +203,8 @@ const publicProfile = userprofile;
             <View style={themedStyles.modalContent}>
               <Text style={themedStyles.modalTitle}>Report or Account</Text>
               <Text style={themedStyles.modalTitleH2}>
-                Below are two options, you can either report this account or block it.
+                Below are two options, you can either report this account or
+                block it.
               </Text>
 
               <ScrollView>
@@ -242,7 +250,9 @@ const publicProfile = userprofile;
                   onPress={handleReportAccount}
                   style={themedStyles.closeModalButton}
                 >
-                  <Text style={themedStyles.closeModalButtonText}>Report Account</Text>
+                  <Text style={themedStyles.closeModalButtonText}>
+                    Report Account
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -260,7 +270,9 @@ const publicProfile = userprofile;
                 <Text style={themedStyles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
-              {getError ? <Text style={{ color: 'red' }}>{getError}</Text> : null}
+              {getError ? (
+                <Text style={{ color: 'red' }}>{getError}</Text>
+              ) : null}
             </View>
           </RNModal>
         </>
@@ -270,7 +282,6 @@ const publicProfile = userprofile;
 };
 
 export default ProfileHeader;
-
 
 const styles = theme =>
   StyleSheet.create({
@@ -330,6 +341,7 @@ const styles = theme =>
     },
     icon: {
       marginTop: 2,
+      textAlign: 'center'
     },
     ActivityIndicator: {
       justifyContent: 'center',
