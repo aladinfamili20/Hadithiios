@@ -111,7 +111,7 @@ const About = ({ AboutCloseModal }) => {
 
           {/* <Text style={styles(theme).abouttexth3}>From ClearDesign</Text> */}
           <View style={{ marginTop: 20 }}>
-            <Text style={styles(theme).abouttexth3}>Version: 1.0.4</Text>
+            <Text style={styles(theme).abouttexth3}>Version: 1.0.6</Text>
             {/* <Text style={styles(theme).abouttexth3}>12.8.23</Text> */}
           </View>
         </View>

@@ -32,7 +32,7 @@ const SearchScreen = () => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [fetchingMore, setFetchingMore] = useState(false);
   const [lastPostDoc, setLastPostDoc] = useState(null);
-const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const navigation = useNavigation();
 
@@ -103,7 +103,6 @@ const [refreshing, setRefreshing] = useState(false);
 
   const fetchPosts = async (loadMore = false) => {
     if (fetchingMore || !hasMorePosts) return;
- 
     setFetchingMore(true);
     const postRef = firestore()
       .collection('posts')
@@ -130,15 +129,38 @@ const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     fetchPosts();
   }, []);
- 
 
   const onRefresh = async () => {
-  setRefreshing(true);
-  setHasMorePosts(true);
-  setLastPostDoc(null);
-  await fetchPosts(false); // re-fetch from beginning
-  setRefreshing(false);
-};
+    setRefreshing(true);
+    setHasMorePosts(true);
+    setLastPostDoc(null);
+    await fetchPosts(false); // re-fetch from beginning
+    setRefreshing(false);
+  };
+
+  const renderImage = ({ item }) => {
+    if (!item?.image || !item?.id) return null;
+    return (
+      <View style={styles(theme).imageContainer}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('postDetail', { id: item.id })}
+           accessible={true}
+        accessibilityLabel="Open post details"
+        >
+          <Image
+            source={{ uri: item.image }}
+            style={{
+              width: '100%',
+              height: 130,
+              borderRadius: 10,
+            }}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+ 
 
   return (
     <View style={styles(theme).searchContainer}>
@@ -179,7 +201,9 @@ const [refreshing, setRefreshing] = useState(false);
         </View>
       ) : searchQuery.trim().length === 0 ? (
         <FlatList
-          data={postData}
+          // data={postData}
+          data={postData.filter(post => !!post.image)}
+
           initialNumToRender={9}
           maxToRenderPerBatch={15}
           windowSize={10}
@@ -188,29 +212,12 @@ const [refreshing, setRefreshing] = useState(false);
           }
           numColumns={3}
           key={'threeColumns'}
-          renderItem={({ item }) => (
-            <View style={styles(theme).imageContainer}>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate('postDetail', { id: item.id })
-                }
-              >
-                <Image
-                  source={{ uri: item.image }}
-                  style={{
-                    width: '100%',
-                    height: 130,
-                    borderRadius: 10,
-                  }}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
+          renderItem={renderImage}
           onEndReached={() => fetchPosts(true)}
           onEndReachedThreshold={0.1}
           refreshControl={
-  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-}
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           ListFooterComponent={
             fetchingMore && (
               <View style={{ padding: 10 }}>

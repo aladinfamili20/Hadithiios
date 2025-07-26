@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
 import {
   Modal,
@@ -7,19 +8,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
-import {CommonActions, useNavigation} from '@react-navigation/native';
-// import {truncateString} from '../TextShortner';
+import React, { useCallback, useEffect, useState } from 'react';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import Video from 'react-native-video';
-import {useRef} from 'react';
+import { useRef } from 'react';
 import DarkMode from '../Theme/DarkMode';
-import { truncateString } from '../TextShortner';
+// import { truncateString } from '../TextShortner';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { FieldValue } from '@react-native-firebase/firestore';
+import { auth, firestore } from '../../data/Firebase';
 
-const VideoDetailScreen = ({post}) => {
-    // console.log(post);
+const VideoDetailScreen = ({ post }) => {
+  // console.log(post);
   const theme = DarkMode();
   const navigation = useNavigation();
-  const [isPaused, setIsPaused] = useState(true); // Track whether video is 
+  const [isPaused, setIsPaused] = useState(true); // Track whether video is
   const togglePlayPause = () => {
     setIsPaused(prev => !prev);
   };
@@ -27,7 +30,7 @@ const VideoDetailScreen = ({post}) => {
     navigation.dispatch(
       CommonActions.navigate({
         name: 'UserProfileScreen',
-        params: {uid: userId},
+        params: { uid: userId },
       }),
     );
   };
@@ -63,7 +66,7 @@ const VideoDetailScreen = ({post}) => {
   );
 };
 
-const TaggedUsers = ({post, theme, navigateToProfile}) => {
+const TaggedUsers = ({ post, theme, navigateToProfile }) => {
   if (!Array.isArray(post?.taggedUsers) || post.taggedUsers.length === 0) {
     return null;
   }
@@ -73,7 +76,8 @@ const TaggedUsers = ({post, theme, navigateToProfile}) => {
       {post.taggedUsers.map((tag, index) => (
         <TouchableOpacity
           key={index}
-          onPress={() => navigateToProfile(tag.uid)}>
+          onPress={() => navigateToProfile(tag.uid)}
+        >
           <Text style={styles(theme).taggedUserText}>
             @{tag.displayName}
             {tag.lastName ? ` ${tag.lastName}` : ''}
@@ -84,11 +88,13 @@ const TaggedUsers = ({post, theme, navigateToProfile}) => {
   );
 };
 
-const PostCaption = ({post, theme}) => {
+const PostCaption = ({ post, theme }) => {
   const [captionModal, setCaptionModal] = useState(false);
   const openCaption = () => setCaptionModal(true);
   const closeCaption = () => setCaptionModal(false);
-
+  const truncateString = (str, maxLength) => {
+    return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+  };
   return (
     <>
       <TouchableOpacity onPress={openCaption}>
@@ -101,7 +107,8 @@ const PostCaption = ({post, theme}) => {
         animationType="slide"
         transparent={true}
         visible={captionModal}
-        onRequestClose={closeCaption}>
+        onRequestClose={closeCaption}
+      >
         <View style={styles(theme).modalOverlay}>
           <View style={styles(theme).modalContainer}>
             <View style={styles(theme).ReportModalContent}>
@@ -122,20 +129,71 @@ const PostCaption = ({post, theme}) => {
   );
 };
 
-const PostVideo = ({post, theme, Video}) => {
+const PostVideo = ({ post, theme, Video }) => {
   const [isPaused, setIsPaused] = useState(true);
-  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
-  const aspectRatio = videoDimensions.width && videoDimensions.height
-  ? videoDimensions.width / videoDimensions.height
-  : 1; // fallback
+  const [videoDimensions, setVideoDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
+  const [liveViewCount, setLiveViewCount] = useState(post.views || 0);
+  const [hasViewed, setHasViewed] = useState(false);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const unsub = firestore()
+      .collection('videos')
+      .doc(post.id)
+      .onSnapshot(docSnap => {
+        if (docSnap.exists) {
+          const data = docSnap.data();
+          setLiveViewCount(data.views || 0);
+        }
+      });
+
+    return () => unsub();
+  }, [post.id]);
+
+  // useEffect(() => {
+  //   trackView();
+  // }, []);
+
+  const trackView = async () => {
+    try {
+      const userId = auth().currentUser?.uid;
+      const videoDocRef = firestore().collection('videos').doc(post.id);
+
+      if (userId) {
+        await videoDocRef.update({
+          views: FieldValue.increment(1), // ✅
+        });
+      }
+    } catch (error) {
+      console.error('[trackView] Error incrementing views:', error);
+    }
+  };
+
+  const handleProgress = ({ currentTime }) => {
+    if (!hasViewed && currentTime >= 1) {
+      setHasViewed(true);
+      trackView();
+    }
+  };
+
+  const aspectRatio =
+    videoDimensions.width && videoDimensions.height
+      ? videoDimensions.width / videoDimensions.height
+      : 1;
+
   const togglePlayPause = () => {
     setIsPaused(prev => !prev);
   };
+
   const onVideoEnd = () => {
-    videoRef.current?.seek(0); // Seek to the beginning
-    setIsPaused(true); // Show play button again
+    videoRef.current?.seek(0);
+    setIsPaused(true);
   };
-  const onLoad = (data) => {
+
+  const onLoad = data => {
     const { width, height } = data.naturalSize;
     if (width && height) {
       setVideoDimensions({ width, height });
@@ -144,49 +202,47 @@ const PostVideo = ({post, theme, Video}) => {
 
   useEffect(() => {
     return () => {
-      setIsPaused(true); // Pause video when screen unmounts
+      setIsPaused(true);
     };
   }, []);
 
-  const videoRef = useRef(null);
-  if (typeof post?.video !== 'string' || !Video) {
-    return null;
-  }
+  if (typeof post?.video !== 'string' || !Video) return null;
 
   return (
     <View
-  style={[
-    styles(theme).videoContainer,
-    {
-      aspectRatio,
-      maxHeight: 500, // LIMIT HEIGHT to avoid super tall videos
-      alignSelf: 'center',
-     },
-  ]}>
-  <TouchableOpacity onPress={togglePlayPause} activeOpacity={0.9}>
-    <Video
-      ref={videoRef}
-      source={{ uri: post.video }}
-      onError={(e) => console.error('Video error:', e)}
-      onLoad={onLoad}
-      resizeMode="contain"
-      paused={isPaused}
-      repeat={true}
-      style={{ width: '100%', height: '100%' }}
-      onEnd={onVideoEnd}
-    />
-  </TouchableOpacity>
+      style={[
+        styles(theme).videoContainer,
+        {
+          aspectRatio,
+          maxHeight: 600,
+          alignSelf: 'center',
+          overflow: 'hidden',
+          borderRadius: 16,
+        },
+      ]}
+    >
+      <TouchableOpacity onPress={togglePlayPause} activeOpacity={0.9}>
+        <Video
+          ref={videoRef}
+          source={{ uri: post.video }}
+          onError={e => console.error('Video error:', e)}
+          onLoad={onLoad}
+          onProgress={handleProgress}
+          resizeMode="contain"
+          paused={isPaused}
+          repeat
+          style={{ width: '100%', height: '100%' }}
+          onEnd={onVideoEnd}
+        />
+      </TouchableOpacity>
 
-  {/* {isPaused && (
-    <TouchableOpacity
-      onPress={togglePlayPause}
-      style={styles(theme).playButtonOverlay}>
-      <Ionicons name="play-circle" size={60} color="#fff" />
-    </TouchableOpacity>
-  )} */}
-</View>
-
-
+      {/* View Counter */}
+      <View style={styles(theme).viewCounter}>
+        <Ionicons name="eye-outline" size={16} color="#fff" />
+        {/* <Text style={styles(theme).viewText}>{post.views || 0} views</Text> */}
+        <Text style={styles(theme).viewText}>{liveViewCount} views</Text>
+      </View>
+    </View>
   );
 };
 
@@ -246,16 +302,16 @@ const styles = theme =>
       fontSize: 14,
     },
 
-    videoContainer: {
-        width: '100%',
-        marginTop: 10,
-        overflow: 'hidden',
-        backgroundColor: '#000',
-      },
-      video: {
-        width: '100%',
-        height: '100%',
-      },
+    // videoContainer: {
+    //     width: '100%',
+    //      marginTop: 10,
+    //     overflow: 'hidden',
+    //     backgroundColor: '#000',
+    //   },
+    video: {
+      width: '100%',
+      height: '100%',
+    },
     playButtonOverlay: {
       position: 'absolute',
       top: '45%',
@@ -264,5 +320,27 @@ const styles = theme =>
       alignItems: 'center',
       backgroundColor: 'rgba(0, 0, 0, 0.3)',
       borderRadius: 30,
+    },
+    videoContainer: {
+      width: '100%',
+      backgroundColor: '#000', // fallback in case video fails
+      position: 'relative',
+      marginTop: 10,
+    },
+    viewCounter: {
+      position: 'absolute',
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: 12,
+      bottom: 10,
+      right: 10,
+    },
+    viewText: {
+      color: '#fff',
+      fontSize: 14,
+      marginLeft: 4,
     },
   });

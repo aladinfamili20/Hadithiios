@@ -1,5 +1,5 @@
-import { Alert, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native'
-import React, { useEffect } from 'react'
+import { ActivityIndicator, Alert, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { NavigationContainer } from '@react-navigation/native';
 import LoginScreen from './auth/LoginScreen';
@@ -38,18 +38,26 @@ import DeleteAccountScreen from './screens/DeleteAccountScreen';
 import SearchScreen from './screens/SearchScreen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import UploadImage from './screens/Post/UploadImage';
-
 import mobileAds from 'react-native-google-mobile-ads';
 import EditPhoto from './screens/EditPhoto';
 import EditVideos from './screens/EditVideos';
 import ManageBlockedUsersScreen from './screens/ManageBlockedUsersScreen';
-import UserInteractions from './screens/UserInteractions';
-import FollowersScreen from './screens/FollowersScreen';
+ import FollowersScreen from './screens/FollowersScreen';
 import FollowingScreen from './screens/FollowingScreen';
+import { safeInitializeStorage } from './storage';
  
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => {
+    const init = async () => {
+      await safeInitializeStorage();
+      setIsReady(true);
+    };
+    init();
+  }, []); 
+
 useEffect(() => {
   mobileAds()
     .initialize()
@@ -57,6 +65,14 @@ useEffect(() => {
       console.log('AdMob initialized');
     });
 }, []);
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
 
   return (

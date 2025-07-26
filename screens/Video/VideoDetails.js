@@ -1,7 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-dupe-keys */
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
   StyleSheet,
@@ -14,11 +14,15 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import {CommonActions, useNavigation, useRoute} from '@react-navigation/native';
+import {
+  CommonActions,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {StatusBar} from 'react-native';
+import { StatusBar } from 'react-native';
 import DarkMode from '../../components/Theme/DarkMode';
 import UserCollectionFech from '../../components/UserCollectionFech';
 import { useUser } from '../../data/Collections/FetchUserData';
@@ -31,24 +35,17 @@ import VideoInteractionScreen from '../../components/Video/VideoInteractionScree
 const VideoDetails = () => {
   const theme = DarkMode();
   const route = useRoute();
-  const {id} = route.params;
+  const { id } = route.params;
   const user = auth().currentUser;
   const uid = user?.uid;
   // eslint-disable-next-line no-unused-vars
-  const {document, loading} = UserCollectionFech('videos', id);
+  const { document, loading } = UserCollectionFech('videos', id);
   const [postDetails, setPostDetails] = useState(null);
   const navigation = useNavigation();
   // eslint-disable-next-line no-unused-vars
   const [comment, setComments] = useState('');
-  const {userData} = useUser();
-  const [userInfoProfileFetch, setUserProfileFetch] = useState(null);
-  const [replies, setReplies] = useState({}); // Track replies for each comment
-  const [replyingToCommentId, setReplyingToCommentId] = useState(null); // Track the comment being replied to
-
+  const { userData } = useUser();
   // Function to add a reply to a specific comment
-
-
-
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     setPostDetails(document);
@@ -65,9 +62,12 @@ const VideoDetails = () => {
     const fetchPostDetails = async () => {
       setIsLoading(true);
       try {
-        const docSnapshot = await firestore().collection('videos').doc(id).get();
+        const docSnapshot = await firestore()
+          .collection('videos')
+          .doc(id)
+          .get();
         if (docSnapshot.exists) {
-          setPostDetails({id: docSnapshot.id, ...docSnapshot.data()});
+          setPostDetails({ id: docSnapshot.id, ...docSnapshot.data() });
         } else {
           console.error('Post not found');
         }
@@ -81,8 +81,6 @@ const VideoDetails = () => {
     fetchPostDetails();
   }, [id]);
 
-  
-
   const CommentsToFirebase = async () => {
     if (!postDetails || !userData) {
       console.error('Post details or user profile fetch is undefined');
@@ -91,7 +89,7 @@ const VideoDetails = () => {
     if (!comment.trim()) return;
 
     try {
-      const {displayName, lastName, profileImage} = userData;
+      const { displayName, lastName, profileImage } = userData;
 
       const today = new Date();
       const date = today.toDateString();
@@ -122,14 +120,6 @@ const VideoDetails = () => {
     }
   };
 
-  const navigateToProfile = userId => {
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'UserProfileScreen',
-        params: {uid: userId},
-      }),
-    );
-  };
 
   const [imageDimensions, setImageDimensions] = useState({
     width: 1,
@@ -141,7 +131,7 @@ const VideoDetails = () => {
       Image.getSize(
         postDetails.image,
         (width, height) => {
-          setImageDimensions({width, height});
+          setImageDimensions({ width, height });
         },
         error => {
           console.error('Error getting image size:', error);
@@ -150,59 +140,46 @@ const VideoDetails = () => {
     }
   }, [postDetails?.image]);
 
-  // Shorting the caption
-  function truncateString(str, maxLength) {
-    if (str.length > maxLength) {
-      return str.substring(0, maxLength) + '...';
-    }
-    return str;
-  }
-
-
- 
-
   return (
     <View style={styles(theme).CommentSectionContainer}>
-    <StatusBar backgroundColor="orangered" />
+      <StatusBar backgroundColor="orangered" />
+      <ScrollView contentContainerStyle={styles(theme).scrollContainer}>
+        <ProfileInfo />
+        {isLoading ? (
+          <View style={[styles(theme).container, styles(theme).horizontal]}>
+            <ActivityIndicator size="large" color="tomato" />
+          </View>
+        ) : (
+          postDetails && (
+            <>
+              {/* Posted video and caption*/}
+              <VideoInfo />
+              <VideoInteractionScreen post={postDetails} />
+              <VideoCommentSection />
+            </>
+          )
+        )}
 
-    <ScrollView contentContainerStyle={styles(theme).scrollContainer}>
-       <ProfileInfo/>
-
-      {isLoading ? (
-        <View style={[styles(theme).container, styles(theme).horizontal]}>
-          <ActivityIndicator size="large" color="tomato" />
+        {/* Comment Input */}
+        <View style={styles(theme).commetnSection}>
+          <TextInput
+            style={styles(theme).commentInput}
+            placeholder="Add a comment"
+            placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
+            onChangeText={setComments}
+            value={comment}
+            maxLength={1500}
+          />
+          <TouchableOpacity
+            onPress={CommentsToFirebase}
+            accessible={true}
+            accessibilityLabel="Post comment"
+          >
+            <Ionicons name="send" size={24} color="#FF4500" />
+          </TouchableOpacity>
         </View>
-      ) : (
-        postDetails && (
-          <>
-          {/* Posted video and caption*/}
-          <VideoInfo/>
-                         <VideoInteractionScreen post={postDetails}/>
-
-          <VideoCommentSection/>
-          </>
-        )
-      )}
-
-      {/* Comment Input */}
-      <View style={styles(theme).commetnSection}>
-        <TextInput
-          style={styles(theme).commentInput}
-          placeholder="Add a comment"
-          placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
-          onChangeText={setComments}
-          value={comment}
-          maxLength={1500}
-        />
-        <TouchableOpacity
-          onPress={CommentsToFirebase}
-          accessible={true}
-          accessibilityLabel="Post comment">
-          <Ionicons name="send" size={24} color="#FF4500" />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -368,7 +345,7 @@ const styles = theme =>
       // backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       borderRadius: 10,
       alignItems: 'center',
-      marginBottom: 40
+      marginBottom: 40,
     },
     commentInput: {
       width: Dimensions.get('window').width * 0.7,
@@ -424,5 +401,3 @@ const styles = theme =>
       width: '100%',
     },
   });
-
-

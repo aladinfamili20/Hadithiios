@@ -197,7 +197,7 @@ const CommentSection = () => {
           </View>
         ))
       ) : (
-        <Text style={styles(theme).noComment}>No comments yet, be the first!</Text>
+        <Text style={styles(theme).noComment}>No comment(s) yet, be the first.</Text>
       )}
 
     </View>

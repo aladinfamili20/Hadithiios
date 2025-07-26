@@ -11,8 +11,7 @@ import {
   Alert,
   Dimensions,
   Text,
-  Appearance,
-  FlatList,
+   FlatList,
 } from 'react-native';
 import {StatusBar} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
@@ -23,10 +22,12 @@ import firestore, {
   getDoc,
   getDocs,
   getFirestore,
+  increment,
   limit,
   orderBy,
   query,
   startAfter,
+  updateDoc,
   where,
 } from '@react-native-firebase/firestore';
 import {auth} from '../../data/Firebase';
@@ -151,8 +152,17 @@ const VideoScreen = () => {
     fetchFollowedPosts(false);
   };
 
+  const incrementViewCount = async (videoId) => {
+  try {
+    const videoRef = doc(db, 'videos', videoId);
+    await updateDoc(videoRef, {
+      views: increment(1),
+    });
+  } catch (error) {
+    console.error('Error incrementing view count:', error);
+  }
+};
  
-
   const renderVideos = useCallback(({item, index}) => (
 
     <View>

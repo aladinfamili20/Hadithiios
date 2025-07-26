@@ -177,7 +177,7 @@ const isAlreadyFollowing = getCurrentLoggedIn.following.some(
         </Text>
       </TouchableOpacity>
 
-      <Text>{getError}</Text>
+      <Text style={styles(theme).error}>{getError}</Text>
     </View>
   );
 };
@@ -235,5 +235,11 @@ const styles = theme =>
       fontSize: 18,
       color: 'white',
     },
+
+    error:{
+     color: theme === 'dark' ? '#fff' : '#121212',
+     textAlign:'center',
+     alignItems: 'center'
+    }
   });
 

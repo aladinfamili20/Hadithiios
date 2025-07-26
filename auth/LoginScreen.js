@@ -8,9 +8,7 @@ import {
   StyleSheet,
   Alert,
   Image,
-  Appearance,
   ActivityIndicator,
-  KeyboardAvoidingViewBase,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Platform,
@@ -20,11 +18,11 @@ import auth from '@react-native-firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import DarkMode from '../components/Theme/DarkMode';
+import { safeInitializeStorage } from '../storage';
 
 const LoginScreen = () => {
   const theme = DarkMode();
   const navigation = useNavigation();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +61,7 @@ const LoginScreen = () => {
       // navigation.replace('feed');
     } catch (error) {
       console.error(error);
+      Alert.alert('Something went wrong!' + 'please check your email or password.')
       setLoginError('Error logging in, incorrent email or password');
       // let message = 'Something went wrong!' + 'please check your email or password.';
       let message =
@@ -79,6 +78,9 @@ const LoginScreen = () => {
       setIsLoading(false);
     }
   };
+  useEffect(() => {
+    safeInitializeStorage();
+  }, []);
 
   if (isInitializing) {
     return (
@@ -139,8 +141,7 @@ const LoginScreen = () => {
                 />
               </TouchableOpacity>
             </View>
-            <Text style={styles(theme).errorMessage}>{loginError}</Text>
-          </View>
+           </View>
 
           <TouchableOpacity
             style={[
@@ -164,23 +165,6 @@ const LoginScreen = () => {
               <Text style={styles(theme).linkText}>Sign up</Text>
             </TouchableOpacity>
           </View>
-
-          {/* <View style={styles(theme).legalContainer}>
-        <Text style={styles(theme).legalMessage}>
-          By logging in, you agree to Hadithi
-        </Text>
-        <View style={styles(theme).legal}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Terms of Service')}>
-            <Text style={styles(theme).legalText}>Terms of Service </Text>
-          </TouchableOpacity>
-          <Text style={styles(theme).and}>and</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Privacy Policy')}>
-            <Text style={styles(theme).legalText}> Privacy Policy</Text>
-          </TouchableOpacity>
-        </View>
-      </View> */}
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>

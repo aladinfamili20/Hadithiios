@@ -15,7 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import DarkMode from '../Theme/DarkMode';
 import { useUser } from '../../data/Collections/FetchUserData';
 import { firestore } from '../../data/Firebase';
-import { truncateString } from '../TextShortner';
+// import { truncateString } from '../TextShortner';
 
 const VideoHeader = ({post, user}) => {
 
@@ -100,6 +100,11 @@ const VideoHeader = ({post, user}) => {
       console.error('Error reporting account: ', error);
       Alert.alert('Error', 'Failed to report the account.');
     }
+  };
+
+
+const truncateString = (str, maxLength) => {
+    return str?.length > maxLength ? str.substring(0, maxLength) + '...' : str;
   };
 
   return (
