@@ -8,9 +8,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import DarkMode from '../components/Theme/DarkMode';
@@ -37,17 +38,18 @@ const ProfileScreen = () => {
   const [selectedTab, setSelectedTab] = useState('photos'); // or 'videos'
   const [userVideos, setUserVideos] = useState([]);
   const [videoConter, setVideoCounter] = useState(0);
+  const [userprofileImages, setUserProfileImages] = useState([]);
+  const [threads, setThreads] = useState([]);
+
   const screenWidth = Dimensions.get('window').width;
   const imageSize = (screenWidth - 16) / 3;
-  let totalPost = videoConter + userPostsCount;
-  useEffect(() => {
+   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const currentUser = auth().currentUser;
         if (!currentUser) {
           return;
         }
-
         const userDoc = await firestore()
           .collection('users')
           .doc(currentUser.uid)
@@ -85,6 +87,8 @@ const ProfileScreen = () => {
             ...doc.data(),
           }));
           setUserPosts(posts);
+          setThreads(posts);
+          setUserProfileImages(posts);
           setLoading(false);
         },
         error => {
@@ -95,6 +99,23 @@ const ProfileScreen = () => {
 
     return () => unsubscribe();
   }, []);
+
+  // Get Threads
+  useEffect(() => {
+    const getThreads = async () => {
+      const postsSnap = await firestore()
+        .collection('posts')
+        .where('uid', '==', uid)
+        .get();
+      const threadsDocs = postsSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setThreads(threadsDocs);
+      setLoading(false);
+    };
+    getThreads();
+  }, [uid]);
 
   // fetch videos from firebase firestore
 
@@ -125,8 +146,6 @@ const ProfileScreen = () => {
     return () => unsubscribe();
   }, []);
 
-  const renderPosts = selectedTab === 'photos' ? userPosts : userVideos;
-
   const deletePost = async postId => {
     try {
       await firestore().collection('posts').doc(postId).delete();
@@ -149,8 +168,6 @@ const ProfileScreen = () => {
     }
   };
 
-
-
   const closeDeleteModal = () => {
     setPostIdToDelete(null);
     setDeleteModalVisible(false);
@@ -161,99 +178,228 @@ const ProfileScreen = () => {
     setDeleteVideoModalVisible(false);
   };
 
+ 
 
+  const photoPosts = userprofileImages.filter(p => p.image && !p.video);
+  const videoPosts = userVideos.filter(p => p.video);
+  const captionOnlyPosts = threads.filter(
+    post => post.caption && !post.image && !post.video,
+  );
+ 
+ 
 
-  const fetchUserPostsCount = async () => {
-    try {
-      const snapshot = await firestore()
-        .collection('posts')
-        .where('uid', '==', uid)
-        .get();
-      setUserPostsCount(snapshot.size);
-    } catch (error) {
-      console.error('Error fetching user posts count:', error);
-    }
-  };
+ 
 
-  useEffect(() => {
-    fetchUserPostsCount();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid]);
-
-  const videoCounterHandler = async () => {
-    try {
-      const snapshot = await firestore()
-        .collection('videos')
-        .where('uid', '==', uid)
-        .get();
-      setVideoCounter(snapshot.size);
-    } catch (error) {
-      console.error('Error fetching user posts count:', error);
-    }
-  };
-
-  useEffect(() => {
-    videoCounterHandler();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid]);
-
-
-
-
-  const renderHeader = () => (
-    <View style={styles(theme, imageSize).profileContainer}>
-      <ProfileBackground />
-      <View style={styles(theme, imageSize).profileContents}>
-        <ProfileHeaderInfo  />
-        <ProfileBio />
-        <ProfileAudience
-          theme={theme}
-          followers={followers}
-          following={following}
-        />
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            marginVertical: 10,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => setSelectedTab('photos')}
+  const renderAudienceProfile = () => {
+    return (
+      <View style={styles(theme, imageSize).profileContainer}>
+        <ProfileBackground />
+        <View style={styles(theme, imageSize).profileContents}>
+          <ProfileHeaderInfo />
+          <ProfileBio />
+          <ProfileAudience
+            theme={theme}
+            followers={followers}
+            following={following}
+          />
+          <View
             style={{
-              padding: 10,
-              backgroundColor: selectedTab === 'photos' ? 'tomato' : 'gray',
-              borderTopLeftRadius: 8,
-              borderBottomLeftRadius: 8,
-              alignSelf: 'center',
-              alignContent: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              marginVertical: 10,
             }}
           >
-            {/* <Ionicons name="image-outline" size={24} color={'white'} style={styles(theme.photoIcon)}/> */}
-            <Text style={{ color: 'white' }}>Photos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSelectedTab('videos')}
-            style={{
-              padding: 10,
-              backgroundColor: selectedTab === 'videos' ? 'tomato' : 'gray',
-              borderTopRightRadius: 8,
-              borderBottomRightRadius: 8,
-            }}
-          >
-            {/* <Ionicons name="camera-outline" size={24} color={'white'}/> */}
+            <TouchableOpacity
+              onPress={() => setSelectedTab('photos')}
+              style={{
+                padding: 10,
+                backgroundColor: selectedTab === 'photos' ? 'tomato' : 'gray',
+                borderTopLeftRadius: 8,
+                borderBottomLeftRadius: 8,
+              }}
+            >
+              <Text style={{ color: 'white' }}>Photos</Text>
+            </TouchableOpacity>
 
-            <Text style={{ color: 'white' }}>Videos</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSelectedTab('threads')}
+              style={{
+                padding: 10,
+                backgroundColor: selectedTab === 'threads' ? 'tomato' : 'gray',
+              }}
+            >
+              <Text style={{ color: 'white' }}>Threads</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSelectedTab('videos')}
+              style={{
+                padding: 10,
+                backgroundColor: selectedTab === 'videos' ? 'tomato' : 'gray',
+                borderTopRightRadius: 8,
+                borderBottomRightRadius: 8,
+              }}
+            >
+              <Text style={{ color: 'white' }}>Videos</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles(theme, imageSize).userPhotosLenghts}>
+          <Text style={styles(theme, imageSize).photosLenghts}>
+            <Text style={styles(theme, imageSize).photosLenghts}>
+              {(selectedTab === 'photos' && photoPosts?.length) ||
+                (selectedTab === 'threads' && captionOnlyPosts?.length) ||
+                (selectedTab === 'videos' && videoPosts?.length) ||
+                0}
+            </Text>
+          </Text>
+          <Text style={styles(theme, imageSize).photosText}> Posts</Text>
         </View>
       </View>
+    );
+  };
 
-      <View style={styles(theme, imageSize).userPhotosLenghts}>
-        <Text style={styles(theme, imageSize).photosLenghts}>{totalPost}</Text>
-        <Text style={styles(theme, imageSize).photosText}> Posts</Text>
+  const handleRenderPosts = ({ item }) => {
+    const hasImage = !!item.image;
+    return (
+      <View key={item.id} style={styles(theme, imageSize).imageContainer}>
+        {hasImage ? (
+          // onPress={() => navigation.navigate('postDetail', { id: item.id })}
+          <View>
+            <TouchableOpacity
+              style={styles(theme, imageSize).EditIconButton}
+              onPress={() =>
+                navigation.navigate('editphoto', {
+                  image: item.image,
+                  caption: item.caption,
+                  id: item.id,
+                  taggedUsers: item.taggedUser,
+                })
+              }
+            >
+              <Ionicons
+                name="create-outline"
+                size={15}
+                style={styles(theme, imageSize).EditIcon}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles(theme).imageContainer}
+              onPress={() => navigation.navigate('postDetail', { id: item.id })}
+            >
+              <Image
+                source={{ uri: item.image }}
+                style={{
+                  width: imageSize,
+                  height: imageSize,
+                  borderRadius: 8,
+                  backgroundColor: theme === 'dark' ? '#333' : '#eee',
+                  aspectRatio: 1,
+                }}
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={styles(theme).missingPostText}>Post unavailable</Text>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
+
+  const renderVideoPost = ({ item }) => {
+    const hasVideo = !!item.video;
+    return (
+      <View key={item.id} style={styles(theme, imageSize).imageContainer}>
+        {hasVideo ? (
+          <View>
+            <TouchableOpacity
+              style={styles(theme, imageSize).EditIconButton}
+              onPress={() =>
+                navigation.navigate('editvideos', {
+                  video: item.video,
+                  caption: item.caption,
+                  id: item.id,
+                  taggedUsers: item.taggedUser,
+                })
+              }
+            >
+              <Ionicons
+                name="create-outline"
+                size={20}
+                style={styles(theme, imageSize).EditIcon}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('videodetails', { id: item.id })
+              }
+            >
+              <Video
+                source={{ uri: item.video }}
+                style={styles(theme, imageSize).userPhotos}
+                resizeMode="cover"
+                muted
+                repeat
+                paused
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={styles(theme).missingPostText}>Post unavailable</Text>
+        )}
+      </View>
+    );
+  };
+
+  const renderCaptionOnlyPost = ({ item }) => {
+    const navigateToProfile = userId => {
+      navigation.dispatch(
+        CommonActions.navigate({
+          name: 'UserProfileScreen',
+          params: { uid: userId },
+        }),
+      );
+    };
+    const hasCaption = !!item.caption;
+    return (
+      <View key={item.id} style={styles(theme, imageSize).captionMainContainer}>
+        {hasCaption ? (
+          <>
+            {/* Profile Header */}
+            <TouchableOpacity
+              onPress={() => navigateToProfile(item.uid)}
+              accessible={true}
+              accessibilityLabel={`Go to ${item.displayName} ${item.lastName}'s profile`}
+              style={styles(theme).captionProfileContainer}
+            >
+              <Image
+                source={{ uri: item.profileImage }}
+                style={styles(theme).profileImage}
+              />
+              <View style={styles(theme).profileDetails}>
+                <Text style={styles(theme).displayName}>
+                  {item.displayName} {item.lastName}
+                </Text>
+                <Text style={styles(theme).timestamp}>{item.time}</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Caption Content */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('postDetail', { id: item.id })}
+              style={styles(theme).captionBody}
+            >
+              <Text style={styles(theme).captionText}>{item.caption}</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <Text style={styles(theme).missingPostText}>Post unavailable</Text>
+        )}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -268,191 +414,120 @@ const ProfileScreen = () => {
     );
   }
 
-
-
   return (
- 
-<View style={styles(theme, imageSize).ProfileContainer}>
-  <SwipeListView
-    data={renderPosts}
-    keyExtractor={item => item.id}
-    numColumns={3}
-    ListHeaderComponent={renderHeader}
-    columnWrapperStyle={{ justifyContent: 'space-between' }}
-    removeClippedSubviews={false}
-    initialNumToRender={12}
-    maxToRenderPerBatch={15}
-    windowSize={10}
-    rightOpenValue={-75}
-    disableRightSwipe
-    contentContainerStyle={{ paddingBottom: 50 }}
+    <View style={styles(theme, imageSize).ProfileContainer}>
+      <FlatList
+        key={selectedTab}
+        data={
+          selectedTab === 'photos'
+            ? photoPosts
+            : selectedTab === 'threads'
+            ? captionOnlyPosts
+            : videoPosts
+        }
+        renderItem={
+          selectedTab === 'photos'
+            ? handleRenderPosts
+            : selectedTab === 'threads'
+            ? renderCaptionOnlyPost
+            : renderVideoPost
+        }
+        numColumns={selectedTab === 'threads' ? 1 : 3} // 1 column for caption posts
+        keyExtractor={item => item.id}
+        ListHeaderComponent={renderAudienceProfile}
+        columnWrapperStyle={
+          selectedTab === 'threads' ? null : { justifyContent: 'space-between' }
+        }
+        removeClippedSubviews={false}
+        initialNumToRender={12}
+        maxToRenderPerBatch={15}
+        windowSize={10}
+        style={styles(theme).flatList}
+        renderHiddenItem={({ item }) => (
+          <View style={styles(theme).rowBack}>
+            <TouchableOpacity
+              style={styles(theme).backRightBtn}
+              onPress={() => {
+                setPostIdToDelete(item.id);
+                selectedTab === 'photos'
+                  ? setDeleteModalVisible(true)
+                  : setDeleteVideoModalVisible(true);
+              }}
+            >
+              <Ionicons name="trash-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+      />
 
-renderItem={({ item }) => (
-  <View style={styles(theme, imageSize).imageContainer}>
-    {selectedTab === 'photos' ? (
-      <View>
-        {/* Edit Icon */}
-        <TouchableOpacity
-          style={styles(theme, imageSize).EditIconButton}
-          onPress={() =>
-            navigation.navigate('editphoto', {
-              image: item.image,
-              caption: item.caption,
-              id: item.id,
-              taggedUsers: item.taggedUser,
-            })
-          }
-        >
-          <Ionicons
-            name="create-outline"
-            size={15}
-            style={styles(theme, imageSize).EditIcon}
-          />
-        </TouchableOpacity>
+       
 
-        {/* Image Thumbnail */}
-        <TouchableOpacity
-          style={styles(theme).imageContainer}
-          onPress={() => navigation.navigate('postDetail', { id: item.id })}
-        >
-          <Image
-            source={{ uri: item.image }}
-            style={{
-              width: imageSize,
-              height: imageSize,
-              borderRadius: 8,
-              backgroundColor: theme === 'dark' ? '#333' : '#eee',
-              aspectRatio: 1,
-            }}
-          />
-        </TouchableOpacity>
-      </View>
-    ) : (
-      <View>
-        {/* Edit Icon for Video */}
-        <TouchableOpacity
-          style={styles(theme, imageSize).EditIconButton}
-          onPress={() =>
-            navigation.navigate('editvideos', {
-              video: item.video,
-              caption: item.caption,
-              id: item.id,
-              taggedUsers: item.taggedUser,
-            })
-          }
-        >
-          <Ionicons
-            name="create-outline"
-            size={20}
-            style={styles(theme, imageSize).EditIcon}
-          />
-        </TouchableOpacity>
-
-        {/* Video Thumbnail */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('videodetails', { id: item.id })}
-        >
-          <Video
-            source={{ uri: item.video }}
-            style={styles(theme, imageSize).userPhotos}
-            resizeMode="cover"
-            muted
-            repeat
-            paused
-          />
-        </TouchableOpacity>
-      </View>
-    )}
-  </View>
-)}
-
-
-    renderHiddenItem={({ item }) => (
-      <View style={styles(theme).rowBack}>
-        <TouchableOpacity
-          style={styles(theme).backRightBtn}
-          onPress={() => {
-            setPostIdToDelete(item.id);
-            selectedTab === 'photos'
-              ? setDeleteModalVisible(true)
-              : setDeleteVideoModalVisible(true);
-          }}
-        >
-          <Ionicons name="trash-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    )}
-
-    ListEmptyComponent={
-      <View style={styles(theme, imageSize).container2}>
-        <Text style={styles(theme, imageSize).emptyText}>
-          No {selectedTab} available
-        </Text>
-      </View>
-    }
-  />
-
-  {/* Delete Photo Modal */}
-  <Modal
-    animationType="slide"
-    transparent
-    visible={deleteModalVisible}
-    onRequestClose={closeDeleteModal}
-  >
-    <View style={styles(theme, imageSize).modalContainer}>
-      <View style={styles(theme, imageSize).modalContent}>
-        <Text style={styles(theme, imageSize).modalText}>
-          Are you sure you want to delete this post?
-        </Text>
-        <View style={styles(theme, imageSize).modalButtons}>
-          <TouchableOpacity
-            style={styles(theme, imageSize).modalButton}
-            onPress={closeDeleteModal}
-          >
-            <Text style={styles(theme, imageSize).modalButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles(theme, imageSize).modalButtonRed}
-            onPress={() => deletePost(postIdToDelete)}
-          >
-            <Text style={styles(theme, imageSize).modalButtonTextBold}>Delete</Text>
-          </TouchableOpacity>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={deleteModalVisible}
+        onRequestClose={closeDeleteModal}
+      >
+        <View style={styles(theme, imageSize).modalContainer}>
+          <View style={styles(theme, imageSize).modalContent}>
+            <Text style={styles(theme, imageSize).modalText}>
+              Are you sure you want to delete this post?
+            </Text>
+            <View style={styles(theme, imageSize).modalButtons}>
+              <TouchableOpacity
+                style={styles(theme, imageSize).modalButton}
+                onPress={closeDeleteModal}
+              >
+                <Text style={styles(theme, imageSize).modalButtonText}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles(theme, imageSize).modalButtonRed}
+                onPress={() => deletePost(postIdToDelete)}
+              >
+                <Text style={styles(theme, imageSize).modalButtonTextBold}>
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
-    </View>
-  </Modal>
+      </Modal>
 
-  {/* Delete Video Modal */}
-  <Modal
-    animationType="slide"
-    transparent
-    visible={deleteVideoModalVisible}
-    onRequestClose={closeDeleteVideoModal}
-  >
-    <View style={styles(theme, imageSize).modalContainer}>
-      <View style={styles(theme, imageSize).modalContent}>
-        <Text style={styles(theme, imageSize).modalText}>
-          Are you sure you want to delete this video?
-        </Text>
-        <View style={styles(theme, imageSize).modalButtons}>
-          <TouchableOpacity
-            style={styles(theme, imageSize).modalButton}
-            onPress={closeDeleteVideoModal}
-          >
-            <Text style={styles(theme, imageSize).modalButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles(theme, imageSize).modalButtonRed}
-            onPress={() => deleteVideo(postIdToDelete)}
-          >
-            <Text style={styles(theme, imageSize).modalButtonTextBold}>Delete</Text>
-          </TouchableOpacity>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={deleteVideoModalVisible}
+        onRequestClose={closeDeleteVideoModal}
+      >
+        <View style={styles(theme, imageSize).modalContainer}>
+          <View style={styles(theme, imageSize).modalContent}>
+            <Text style={styles(theme, imageSize).modalText}>
+              Are you sure you want to delete this video?
+            </Text>
+            <View style={styles(theme, imageSize).modalButtons}>
+              <TouchableOpacity
+                style={styles(theme, imageSize).modalButton}
+                onPress={closeDeleteVideoModal}
+              >
+                <Text style={styles(theme, imageSize).modalButtonText}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles(theme, imageSize).modalButtonRed}
+                onPress={() => deleteVideo(postIdToDelete)}
+              >
+                <Text style={styles(theme, imageSize).modalButtonTextBold}>
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+      </Modal>
     </View>
-  </Modal>
-</View>
-
   );
 };
 
@@ -595,23 +670,22 @@ const styles = (theme, imageSize) =>
       fontSize: 15,
     },
 
-  rowBack: {
-  alignItems: 'center',
-   flex: 1,
-  flexDirection: 'row',
-  justifyContent: 'flex-end',
-  paddingRight: 15,
-  marginVertical: 8,
-  borderRadius: 8,
-},
-backRightBtn: {
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 75,
-  height: '100%',
-  backgroundColor: 'red',
-  borderTopRightRadius: 8,
-  borderBottomRightRadius: 8,
-},
-
+    rowBack: {
+      alignItems: 'center',
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingRight: 15,
+      marginVertical: 8,
+      borderRadius: 8,
+    },
+    backRightBtn: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 75,
+      height: '100%',
+      backgroundColor: 'red',
+      borderTopRightRadius: 8,
+      borderBottomRightRadius: 8,
+    },
   });

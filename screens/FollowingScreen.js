@@ -13,7 +13,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import firestore, { Timestamp } from '@react-native-firebase/firestore';
+import firestore, { collection, Timestamp, where } from '@react-native-firebase/firestore';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Divider from '../components/Divider';
@@ -21,6 +21,7 @@ import DarkMode from '../components/Theme/DarkMode';
 import { useUser } from '../data/Collections/FetchUserData';
 import { auth } from '../data/Firebase';
 import { currentLoggedInUserData } from '../components/FetchFollowingData';
+import { getDocs, getFirestore, query } from 'firebase/firestore';
 // import ProgressBar from 'react-native-progress/Bar';
 
 const PAGE_SIZE = 15;
@@ -77,8 +78,8 @@ const FollowingScreen = () => {
       const nameSnapshot = await firestore()
         .collection('notifications')
         .where('recipientId', '==', uid)
-        .where('followerName', '>=', searchQuery)
-        .where('followerName', '<=', searchQuery + '\uf8ff')
+        .where('displayName', '>=', searchQuery)
+        .where('displayName', '<=', searchQuery + '\uf8ff')
         .get();
 
       nameSnapshot.forEach(doc => {
@@ -147,29 +148,115 @@ const FollowingScreen = () => {
     setLastPostDoc(null);
     setRefreshing(false);
   };
-
-  //   Fetch followers
-
+ 
+  // fetched followers
   useEffect(() => {
-    const fetchFollowers = async () => {
+    const getFollewerNotification = async () => {
       if (!uid) return;
       try {
-        const userRef = firestore().collection('users').doc(uid);
-        const userDoc = await userRef.get();
-        const followersList = userDoc.exists
-          ? userDoc.data().following || []
-          : [];
-        setFollowers(followersList);
-        setIsFollowing(true);
+        const snapshot = await firestore()
+          .collection('notifications')
+          .where('recipientId', '==', uid)
+      .where('type', '==', 'new_follower')
+          .get();
+
+        const documents = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          // type: 'new_follower',
+          // key: `new_follower-${doc.id}`,
+          timestamp: doc.data().timestamp || Timestamp.now(),
+        }));
+        setFollowers(documents);
+          setIsFollowing(true);
       } catch (error) {
-        console.error('Error fetching followers:', error);
+        console.error('Error fetching follower notifications:', error);
       } finally {
-        setLoading(false);
+        setLoading(false); // ✅ move here
       }
     };
-
-    fetchFollowers();
+    getFollewerNotification();
   }, [uid]);
+
+
+
+
+
+
+ 
+ // Helper: chunk array into pieces of 10
+// const chunk = (array, size = 10) => {
+//   const result = [];
+//   for (let i = 0; i < array.length; i += size) {
+//     result.push(array.slice(i, i + size));
+//   }
+//   return result;
+// };
+
+// const fetchFollowedUsersFromNotifications = async (currentUserId) => {
+//   try {
+//     // Get the user's "following" list
+//     const userDoc = await firestore().collection('users').doc(currentUserId).get();
+//     const following = userDoc.exists ? userDoc.data().following || [] : [];
+//     if (!following.length) return [];
+
+//     // Fetch notifications where this user followed someone
+//     const snapshot = await firestore()
+//       .collection('notifications')
+//       .where('uid', '==', currentUserId)
+//       .where('type', '==', 'new_follower')
+//       .get();
+
+//     if (snapshot.empty) return [];
+
+//     // Get recipientIds from notifications
+//     const recipientIds = snapshot.docs.map(doc => doc.data().recipientId);
+
+//     // Only keep those the user is still following
+//     const validIds = recipientIds.filter(id => following.includes(id));
+
+//     // Remove duplicates
+//     const uniqueValidIds = [...new Set(validIds)];
+
+//     // Chunk for Firestore "in" queries
+//     const chunks = chunk(uniqueValidIds, 10);
+//     const followedUsers = [];
+
+//     for (const group of chunks) {
+//       const userSnapshot = await firestore()
+//         .collection('users')
+//         .where(firestore.FieldPath.documentId(), 'in', group)
+//         .get();
+
+//       userSnapshot.forEach(doc => {
+//         followedUsers.push({ id: doc.id, ...doc.data() });
+//       });
+//     }
+
+//     return followedUsers;
+//   } catch (error) {
+//     console.error('Error fetching currently followed users:', error);
+//     return [];
+//   }
+// }; 
+
+
+
+
+// useEffect(() => {
+//   const loadFollowedUsers = async () => {
+//     const users = await fetchFollowedUsersFromNotifications(user?.uid);
+//     setFollowers(users);
+//   };
+
+//   if (user?.uid) loadFollowedUsers();
+// }, [user?.uid]);
+
+
+
+
+ 
+
 
   //   handle follow back
 
@@ -219,20 +306,22 @@ const FollowingScreen = () => {
         });
 
         batch.update(targetUserRef, {
-          followers: firestore.FieldValue.arrayUnion({
-            displayName,
-            lastName,
-            profileImage,
-            uid: currentUserId,
-            timestamp: Timestamp.now(),
-          }),
+          followers: firestore.FieldValue.arrayUnion(currentUserId
+          //   {
+          //   displayName,
+          //   lastName,
+          //   profileImage,
+          //   uid: currentUserId,
+          //   timestamp: Timestamp.now(),
+          // }
+        ),
         });
 
         await firestore().collection('notifications').add({
         recipientId: targetUserId,
         type: 'new_follower',
-        followerId: currentUserId,
-        followerName: `${displayName} ${lastName}`,
+        uid: currentUserId,
+        displayName: `${displayName} ${lastName}`,
         followerImage: profileImage,
         timestamp: firestore.Timestamp.now(),
         read: false,
@@ -387,7 +476,7 @@ const FollowingScreen = () => {
                     style={{ marginLeft: 10 }}
                   >
                     <Text style={styles(theme).displayName}>
-                      {item.followerName}
+                      {item.displayName}
                     </Text>
                     <Text style={styles(theme).alert}>New follower</Text>
                   </TouchableOpacity>

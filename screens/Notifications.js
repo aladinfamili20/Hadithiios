@@ -24,7 +24,7 @@ const Notifications = () => {
   const user = auth().currentUser;
   const uid = user?.uid;
 
-  const [followers, setFollowers] = useState([]);
+  const [follwedNotifications, setFollwedNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -46,25 +46,35 @@ const Notifications = () => {
     );
   };
 
+ 
+  // fetched followers
   useEffect(() => {
-    const fetchFollowers = async () => {
+    const getFollewerNotification = async () => {
       if (!uid) return;
       try {
-        const userDoc = await firestore().collection('users').doc(uid).get();
-        const followersList = userDoc.exists
-          ? userDoc.data().followers || []
-          : [];
-        setFollowers(followersList);
-        setIsFollowing(true);
+        const snapshot = await firestore()
+          .collection('notifications')
+          .where('recipientId', '==', uid)
+          .get();
+
+        const documents = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          // type: 'new_follower',
+          key: `new_follower-${doc.id}`,
+          timestamp: doc.data().timestamp || Timestamp.now(),
+        }));
+        setFollwedNotifications(documents);
       } catch (error) {
-        console.error('Error fetching followers:', error);
+        console.error('Error fetching follower notifications:', error);
       } finally {
-        setLoading(false);
+        setLoading(false); // ✅ move here
       }
     };
-    fetchFollowers();
+    getFollewerNotification();
   }, [uid]);
 
+  // fetched liked photos
   useEffect(() => {
     const getLikedNotifications = async () => {
       if (!uid) return;
@@ -89,47 +99,51 @@ const Notifications = () => {
     getLikedNotifications();
   }, [uid]);
 
-  const followUser = async (currentUserId, targetUserId) => {
-    if (!currentUserId || !targetUserId || !profileData) return;
+const followUser = async (currentUserId, targetUserId) => {
+  if (!currentUserId || !targetUserId || !profileData) return;
 
-    try {
-      const batch = firestore().batch();
-      const currentUserRef = firestore().collection('users').doc(currentUserId);
-      const targetUserRef = firestore().collection('users').doc(targetUserId);
-      const { displayName, lastName, profileImage } = profileData;
+  try {
+    const batch = firestore().batch();
+    const currentUserRef = firestore().collection('users').doc(currentUserId);
+    const targetUserRef = firestore().collection('users').doc(targetUserId);
+    const { displayName, lastName, profileImage } = profileData;
 
-      batch.update(currentUserRef, {
-        following: firestore.FieldValue.arrayRemove(targetUserId),
-      });
-      batch.update(targetUserRef, {
-        followers: firestore.FieldValue.arrayRemove({
-          displayName,
-          lastName,
-          profileImage,
-          uid: currentUserId,
-          timestamp: Timestamp.now(),
-        }),
-      });
+    // Remove and re-add target userId to avoid duplication
+    batch.update(currentUserRef, {
+      following: firestore.FieldValue.arrayRemove(targetUserId),
+    });
+    batch.update(currentUserRef, {
+      following: firestore.FieldValue.arrayUnion(targetUserId),
+    });
 
-      batch.update(currentUserRef, {
-        following: firestore.FieldValue.arrayUnion(targetUserId),
-      });
-      batch.update(targetUserRef, {
-        followers: firestore.FieldValue.arrayUnion({
-          displayName,
-          lastName,
-          profileImage,
-          uid: currentUserId,
-          timestamp: Timestamp.now(),
-        }),
-      });
+    // Remove and re-add current userId to target’s followers list
+    batch.update(targetUserRef, {
+      followers: firestore.FieldValue.arrayRemove(currentUserId),
+    });
+    batch.update(targetUserRef, {
+      followers: firestore.FieldValue.arrayUnion(currentUserId),
+    });
 
-      await batch.commit();
-      Alert.alert('Follow back');
-    } catch (error) {
-      console.error('Error following back:', error);
-    }
-  };
+    await batch.commit();
+
+    // Add a new follower notification
+    await firestore().collection('notifications').add({
+      recipientId: targetUserId,
+      type: 'new_follower',
+      uid: currentUserId,
+      displayName,
+      lastName,
+      profileImage,
+      timestamp: firestore.Timestamp.now(),
+      read: false,
+    });
+
+    Alert.alert('Followed back');
+  } catch (error) {
+    console.error('Error following back:', error);
+  }
+};
+
 
   const handleDelete = async id => {
     Alert.alert(
@@ -142,11 +156,8 @@ const Notifications = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await firestore()
-                .collection('notifications')
-                .doc(id, uid)
-                .delete();
-              setLikeNotifications(prev => prev.filter(n => n.id !== id, uid));
+              await firestore().collection('notifications').doc(id).delete();
+              setLikeNotifications(prev => prev.filter(n => n.id !== id));
             } catch (err) {
               console.error('Error deleting notification:', err);
             }
@@ -155,28 +166,34 @@ const Notifications = () => {
       ],
     );
   };
-  
 
   const combinedNotifications = [
-    ...followers.map((item, index) => ({
-      ...item,
-      type: 'follower',
-      // key: `follower-${item.uid}`,
-      key: `follower-${item.uid}-${index}`, // Ensures uniqueness
+    // ...followers.map((item, index) => ({
+    //   ...item,
+    //   type: 'follower',
+    //   // key: `follower-${item.uid}`,
+    //   key: `follower-${item.uid}-${index}`, // Ensures uniqueness
 
-      timestamp: item.timestamp || Timestamp.now(), // fallback if missing
-    })),
+    //   timestamp: item.timestamp || Timestamp.now(), // fallback if missing
+    // })),
     ...likeNotifications.map(item => ({
       ...item,
       type: 'like',
       key: `like-${item.id}`,
       timestamp: item.timestamp || Timestamp.now(), // ensure it's present
     })),
+    ...follwedNotifications.map(item => ({
+      ...item,
+      type: 'new_follower',
+      key: `new_follower-${item.id}`,
+      timestamp: item.timestamp || Timestamp.now(), // ensure it's present
+    })),
   ].sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis()); // newest first
 
   const renderItem = ({ item }) => (
-    <View style={styles(theme).NotificationContainer}>
-      {item.type === 'follower' ? (
+ 
+      <View style={styles(theme).NotificationContainer}>
+      {item.type === 'new_follower' ? (
         <>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity onPress={() => navigateToProfile(item.uid)}>
@@ -194,7 +211,7 @@ const Notifications = () => {
               style={{ marginLeft: 10 }}
             >
               <Text style={styles(theme).displayName}>
-                {item.displayName} {item.lastName}
+                {item.displayName}
               </Text>
               <Text style={styles(theme).alert}>New follower</Text>
             </TouchableOpacity>
@@ -217,6 +234,10 @@ const Notifications = () => {
                 {item.lickerDisplayName}
               </Text>
               <Text style={styles(theme).alert}>Liked your photo</Text>
+
+              {/* <Text style={styles(theme).timestamp}>
+  {item.timestamp.toDate().toLocaleString()}
+</Text> */}
             </View>
           </View>
 
@@ -227,6 +248,7 @@ const Notifications = () => {
         </>
       )}
     </View>
+ 
   );
 
   const renderHiddenItem = data => (
@@ -245,32 +267,38 @@ const Notifications = () => {
   );
 
   return (
-    <View style={styles(theme).container}>
-      <View style={styles(theme).header}>
-        <TouchableOpacity onPress={() => navigation.navigate('feed')}>
-          <Ionicons
-            name="chevron-back-outline"
-            color={theme === 'dark' ? '#fff' : '#121212'}
-            size={24}
-          />
-        </TouchableOpacity>
-        <Text style={styles(theme).texth1}>Notifications</Text>
-      </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="tomato" />
-      ) : (
-        <SwipeListView
-          data={combinedNotifications}
-          renderItem={renderItem}
-          renderHiddenItem={renderHiddenItem}
-          rightOpenValue={-75}
-          keyExtractor={item => item.key}
-          disableRightSwipe
-          showsVerticalScrollIndicator={false}
+   <View style={styles(theme).container}>
+    <View style={styles(theme).header}>
+      <TouchableOpacity onPress={() => navigation.navigate('feed')}>
+        <Ionicons
+          name="chevron-back-outline"
+          color={theme === 'dark' ? '#fff' : '#121212'}
+          size={24}
         />
-      )}
+      </TouchableOpacity>
+      <Text style={styles(theme).texth1}>Notifications</Text>
     </View>
+
+    {loading ? (
+      <ActivityIndicator size="large" color="tomato" />
+    ) : combinedNotifications.length === 0 ? (
+      <View style={{ alignItems: 'center', marginTop: 50 }}>
+        <Text style={{ color: theme === 'dark' ? '#fff' : '#121212', fontSize: 16 }}>
+          You have no notifications.
+        </Text>
+      </View>
+    ) : (
+      <SwipeListView
+        data={combinedNotifications}
+        renderItem={renderItem}
+        renderHiddenItem={renderHiddenItem}
+        rightOpenValue={-75}
+        keyExtractor={item => item.key}
+        disableRightSwipe
+        showsVerticalScrollIndicator={false}
+      />
+    )}
+  </View>
   );
 };
 

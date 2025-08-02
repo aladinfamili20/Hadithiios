@@ -61,32 +61,35 @@ const followUser = async (currentUserId, targetUser) => {
     } = userData || {};
 
    batch.update(currentUserRef, {
-  following: firestore.FieldValue.arrayUnion({
-    uid: targetUserId,
-    displayName: targetUser.displayName || '',
-    lastName: targetUser.lastName || '',
-    profileImage: targetUser.profileImage || '',
-    timestamp: firestore.Timestamp.now(),
-  }),
+  following: firestore.FieldValue.arrayUnion(targetUserId
+  //   {
+  //   uid: targetUserId,
+  //   displayName: targetUser.displayName || '',
+  //   lastName: targetUser.lastName || '',
+  //   profileImage: targetUser.profileImage || '',
+  //   timestamp: firestore.Timestamp.now(),
+  // }
+),
 });
 
     batch.update(targetUserRef, {
-      followers: firestore.FieldValue.arrayUnion({
-        uid: currentUserId,
-        displayName,
-        lastName,
-        profileImage,
-        timestamp: firestore.Timestamp.now(),
-      }),
+      followers: firestore.FieldValue.arrayUnion(currentUserId
+      //   {
+      //   uid: currentUserId,
+      //   displayName,
+      //   lastName,
+      //   profileImage,
+      //   timestamp: firestore.Timestamp.now(),
+      // }
+    ),
     });
 
     await batch.commit();
     await firestore().collection('notifications').add({
       recipientId: targetUserId,
       type: 'new_follower',
-      followerId: currentUserId,
-      displayName,
-      lastName,
+      uid: currentUserId,
+      displayName: `${displayName} ${lastName}`,
       profileImage,
       timestamp: firestore.Timestamp.now(),
       read: false,

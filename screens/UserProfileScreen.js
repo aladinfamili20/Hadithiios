@@ -224,7 +224,7 @@ const UserProfileScreen = () => {
       const navigateToProfile = userId => {
         navigation.dispatch(
           CommonActions.navigate({
-            name: 'UserProfileScreen',
+            name: 'UserProfileScreen', 
             params: {uid: userId},
           }),
         );

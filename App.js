@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import { ActivityIndicator, Alert, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
@@ -45,7 +46,8 @@ import ManageBlockedUsersScreen from './screens/ManageBlockedUsersScreen';
  import FollowersScreen from './screens/FollowersScreen';
 import FollowingScreen from './screens/FollowingScreen';
 import { safeInitializeStorage } from './storage';
- 
+ import NetInfo from '@react-native-community/netinfo';
+
 const Stack = createNativeStackNavigator();
 
 const App = () => {
@@ -58,6 +60,8 @@ const App = () => {
     init();
   }, []); 
 
+
+  // Initialize Google AdMob
 useEffect(() => {
   mobileAds()
     .initialize()
@@ -65,6 +69,25 @@ useEffect(() => {
       console.log('AdMob initialized');
     });
 }, []);
+
+
+// Checking user's internert connection
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (!state.isConnected) {
+        Alert.alert(
+          'No Internet Connection',
+          'You are not connected to the internet. Please check your connection and try again.'
+        );
+      }
+    });
+  
+    return () => unsubscribe();
+  }, []);
+
+
+
+
 
   if (!isReady) {
     return (

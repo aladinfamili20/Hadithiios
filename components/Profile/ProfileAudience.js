@@ -21,7 +21,7 @@ const ProfileAudience = ({theme, followers, following}) => {
       
               <View style={styles(theme).followerContainer}>
                 <TouchableOpacity 
-                onPress={()=>navigation.navigate('FollowingScreen')}
+                // onPress={()=>navigation.navigate('FollowingScreen')}
 
                 style={styles(theme).followerContent}>
                   <Text style={styles(theme).follower}>

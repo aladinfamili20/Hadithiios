@@ -62,8 +62,8 @@ export const useHandleFollow = () => {
         recipientId: targetUserId,
         type: 'new_follower',
         followerId: currentUserId,
-        followerName: `${userData.displayName} ${userData.lastName}`,
-        followerImage: userData.profileImage,
+        displayName: `${userData.displayName} ${userData.lastName}`,
+        profileImage: userData.profileImage,
         timestamp: firestore.Timestamp.now(),
         read: false,
       });

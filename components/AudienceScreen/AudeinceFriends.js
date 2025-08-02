@@ -9,14 +9,14 @@ import FecthUserProfile from '../FetchUserProfile';
 import { useUser } from '../../data/Collections/FetchUserData';
 import { currentLoggedInUserData } from '../FetchFollowingData';
 import { Timestamp } from '@react-native-firebase/firestore';
- 
+
 const AudienceFriends = () => {
   const route = useRoute();
 
   const { uid } = route.params;
   const user = auth().currentUser;
   const { getCurrentLoggedIn } = currentLoggedInUserData();
-  const {userData} = useUser();
+  const { userData } = useUser();
   const theme = DarkMode();
   const { userprofile } = FecthUserProfile('profileUpdate', uid);
   const { friends } = FetchFriendsCollection('users', uid);
@@ -26,18 +26,17 @@ const AudienceFriends = () => {
   const [currentLoggedInUser, setCurrentLoggedInUser] = useState(null);
   const [getProfInfo, setGetProfInfo] = useState(null);
   const [getError, setGetError] = useState('');
+  const [followingUserId, setFollowingUserId] = useState(null);
 
-  console.log("Profile info",getProfInfo)
+  console.log('Profile info', getProfInfo);
 
-  useEffect(()=>{
+  useEffect(() => {
     setGetProfInfo(userData);
-  },[userData])
+  }, [userData]);
 
-   useEffect(() => {
+  useEffect(() => {
     setPublicProfile(userprofile);
   }, [userprofile]);
-
-
 
   useEffect(() => {
     setFetchFriends(friends);
@@ -47,7 +46,6 @@ const AudienceFriends = () => {
     setCurrentLoggedInUser(getCurrentLoggedIn);
   }, [getCurrentLoggedIn]);
 
- 
 const handleFollow = async () => {
   const currentUserId = user?.uid;
   const targetUserId = publicProfile?.uid;
@@ -56,74 +54,49 @@ const handleFollow = async () => {
   const currentUserRef = firestore().collection('users').doc(currentUserId);
   const targetUserRef = firestore().collection('users').doc(targetUserId);
 
-        const { displayName, lastName, profileImage } = getProfInfo || {};
+  const { displayName, lastName, profileImage } = getProfInfo || {};
 
-const currentUserDoc = await currentUserRef.get();
-const currentUserData = currentUserDoc.data();
-const updatedFollowing = (currentUserData.following || []).filter(
-  f => f.uid !== targetUserId
-);
-
- 
-
-
- 
   try {
+    const currentUserDoc = await currentUserRef.get();
+    const currentUserData = currentUserDoc.data();
+
     if (isFollowing) {
-      // UNFOLLOW
+      const updatedFollowing = (currentUserData.following || []).filter(
+        f => f !== targetUserId
+      );
+
       await currentUserRef.update({
-  following: updatedFollowing,
-});
+        following: updatedFollowing,
+      });
 
       await targetUserRef.update({
-        followers: firestore.FieldValue.arrayRemove({
-          uid:currentUserId,
-          displayName,
-          lastName,
-          profileImage,
-          createdAt: Timestamp.now(),
-        }),
-   
+        followers: firestore.FieldValue.arrayRemove(currentUserId),
       });
 
       setIsFollowing(false);
+      Alert.alert('Unfollowed');
     } else {
-      // FOLLOW
       await currentUserRef.update({
-        following: firestore.FieldValue.arrayUnion({
-          uid: targetUserId,
-          displayName:publicProfile.displayName,
-          lastName:publicProfile.lastName,
-          profileImage:publicProfile.profileImage,
-          createdAt: Timestamp.now(),
-        }),
-        
+        following: firestore.FieldValue.arrayUnion(targetUserId), // ✅ fixed
       });
 
       await targetUserRef.update({
-        followers: firestore.FieldValue.arrayUnion({
-          uid:currentUserId,
-          displayName,
-          lastName,
-          profileImage,
-          createdAt: Timestamp.now(),
-        }),
+        followers: firestore.FieldValue.arrayUnion(currentUserId),
       });
 
       setIsFollowing(true);
+      Alert.alert('Followed');
 
-        await firestore().collection('notifications').add({
+      await firestore().collection('notifications').add({
         recipientId: targetUserId,
         type: 'new_follower',
-        followerId: currentUserId,
-        followerName: `${displayName} ${lastName}`,
-        followerImage: profileImage,
+        uid: currentUserId,
+        displayName: `${displayName} ${lastName}`,
+        profileImage,
         timestamp: firestore.Timestamp.now(),
         read: false,
       });
     }
-
-    Alert.alert(isFollowing ? 'Unfollowed' : 'Followed');
   } catch (error) {
     console.error('Error updating follow state:', error);
     setGetError('Follow/unfollow failed. Please try again.');
@@ -131,20 +104,18 @@ const updatedFollowing = (currentUserData.following || []).filter(
 };
 
 
-useEffect(() => {
-  if (
-    getCurrentLoggedIn?.following &&
-    Array.isArray(getCurrentLoggedIn.following) &&
-    publicProfile?.uid
-  ) {
-const isAlreadyFollowing = getCurrentLoggedIn.following.some(
-  f => f.uid === publicProfile.uid
-);
-    setIsFollowing(isAlreadyFollowing);
-  }
-}, [getCurrentLoggedIn, publicProfile]);
+  useEffect(() => {
+    if (
+      getCurrentLoggedIn?.following &&
+      Array.isArray(getCurrentLoggedIn.following) &&
+      publicProfile?.uid
+    ) {
+ 
+      const isAlreadyFollowing = getCurrentLoggedIn.following.includes(publicProfile.uid);
 
-
+      setIsFollowing(isAlreadyFollowing);
+    }
+  }, [getCurrentLoggedIn, publicProfile]);
 
   return (
     <View style={styles(theme).container}>
@@ -236,10 +207,9 @@ const styles = theme =>
       color: 'white',
     },
 
-    error:{
-     color: theme === 'dark' ? '#fff' : '#121212',
-     textAlign:'center',
-     alignItems: 'center'
-    }
+    error: {
+      color: theme === 'dark' ? '#fff' : '#121212',
+      textAlign: 'center',
+      alignItems: 'center',
+    },
   });
-

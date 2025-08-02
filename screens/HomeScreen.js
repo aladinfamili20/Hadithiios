@@ -53,11 +53,20 @@ export const fetchPostsByFollowing = async (
   const blockedUids = await fetchBlockedUids();
 
   const postsRef = collection(db, 'posts');
-  const uidsOnly = following.map(f => f.uid); // extract uid from objects
+  // const uidsOnly = following.map(f => f.uid);  
+  // const uidsOnly = following
+  // .map(f => f?.uid)
+  // .filter(uid => typeof uid === 'string' && uid.trim() !== '' && !Array.isArray(uid));
+
+
+  const uidsOnly = following
+  .filter(uid => typeof uid === 'string' && uid.trim() !== '');
+
 const chunks = chunk(uidsOnly, 10);
    const allPosts = [];
 
   for (const group of chunks) {
+     if (!group.length) continue;
     let q = query(
       postsRef,
       where('uid', 'in', group),
@@ -106,7 +115,7 @@ const HomeScreen = () => {
 
     <View>
       <PostHandler post={item} />
-      {index > 0 && index % 6 === 0 && (
+      {index > 0 && index % 5 === 0 && (
         <View style={{marginVertical: 10, alignItems: 'center'}}>
           <BannerAd
             unitId={liveAdUnit}
@@ -126,42 +135,47 @@ const HomeScreen = () => {
     navigation.navigate('login');
   }
 
-  const fetchFollowedPosts = useCallback(
-    async (isInitialLoad = false) => {
-      if (!user) {
+ const fetchFollowedPosts = useCallback(
+  async (isInitialLoad = false) => {
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const following = await getFollowingUsers(user.uid);
+
+      if (following.length === 0) {
+        setPostData([]);
+        setLastVisible(null);
         setLoading(false);
         return;
       }
-      try {
-        const following = await getFollowingUsers(uid);
-        if (following.length === 0) {
-          setPostData([]);
-          setLoading(false);
-          return;
-        }
 
-        const {posts, newLastVisible} = await fetchPostsByFollowing(
-          following,
-          isInitialLoad ? null : lastVisible,
-          BATCH_SIZE,
-        );
+      const { posts, newLastVisible } = await fetchPostsByFollowing(
+        following,
+        isInitialLoad ? null : lastVisible,
+        BATCH_SIZE,
+      );
 
-        setPostData(prevPosts => {
-          const combined = isInitialLoad ? posts : [...prevPosts, ...posts];
-          const uniquePosts = Array.from(new Map(combined.map(p => [p.id, p])).values());
-          return uniquePosts;
-        });
+      setPostData(prevPosts => {
+        const combined = isInitialLoad ? posts : [...prevPosts, ...posts];
+        const uniquePosts = Array.from(new Map(combined.map(p => [p.id, p])).values());
+        return uniquePosts;
+      });
 
-        setLastVisible(newLastVisible);
-        setLoading(false);
-        setFetchingMore(false);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        setLoading(false);
-      }
-    },
-    [user, uid, lastVisible]
-  );
+      setLastVisible(newLastVisible);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+      setFetchingMore(false);
+    }
+  },
+  [user?.uid, lastVisible]
+);
+
+ 
 
   useEffect(() => {
     fetchFollowedPosts(true);
