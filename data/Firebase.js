@@ -1,37 +1,35 @@
-// Import the necessary Firebase modules
+// 1. Import env vars from .env file
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+  FIREBASE_MEASUREMENT_ID,
+} from '@env';
+
+// 2. Import Firebase modules from react-native-firebase
 import { firebase } from '@react-native-firebase/app';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
- // No need for manual firebaseConfig; RNFirebase uses the native configuration files
-// Place `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) in your project.
 
-
-// Make sure you have these in your project
-const firebaseConfig = {
-//  apiKey: 'AIzaSyAVBOkXkqxnZq4fTXXv2oVfUdNoCaZy6H4',
-//   authDomain: 'hadithisocial-c964d.firebaseapp.com',
-//   projectId: 'hadithisocial-c964d',
-//   storageBucket: 'hadithisocial-c964d.firebasestorage.app',
-//   messagingSenderId: '894401546395',
-//   appId: '1:894401546395:web:23a25a449e66335796de3e',
-//   measurementId: 'G-SBYJNW7RH9',
-
-  apiKey: "AIzaSyAhOTviHv2jMcucd2Qse8EckVZHG-ndFfw",
-  authDomain: "hadithidev.firebaseapp.com",
-  projectId: "hadithidev",
-  storageBucket: "hadithidev.firebasestorage.app",
-  messagingSenderId: "477493476864",
-  appId: "1:477493476864:web:a5ebee6bb91d686ff7e2e5",
-  measurementId: "G-XTHPWCGPZX"
+// 3. Firebase config using environment variables
+export const firebaseConfig = {
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+  measurementId: FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase if not already initialized
+// 4. Initialize Firebase if not already initialized
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
-
-
-// Export the Firebase services for use in your app
+// 5. Export Firebase services for global use
 export { auth, firestore, storage };
