@@ -59,7 +59,8 @@ export const fetchPostsByFollowing = async (
   }
 
   const postsRef = collection(db, 'videos');
-    const uidsOnly = following.map(f => f.uid); // extract uid from objects
+  const uidsOnly = following
+  .filter(uid => typeof uid === 'string' && uid.trim() !== '');
 
   const chunks = chunk(uidsOnly, 10);
   const allPosts = [];

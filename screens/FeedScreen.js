@@ -11,6 +11,7 @@ import DarkMode from '../components/Theme/DarkMode';
 import VideoScreen from './Video/VideoScreen';
 import SearchScreen from './SearchScreen';
 import UploadPost from './Post/UploadPost';
+import CameraScreen from './camera/CameraScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -100,6 +101,7 @@ const FeedScreen = () => {
       {/* <Tab.Screen name="Event" component={Event} /> */}
       <Tab.Screen name="Search" component={SearchScreen} />
       <Tab.Screen name="Post" component={UploadPost} />
+      {/* <Tab.Screen name='Post' component={CameraScreen}/> */}
 
       <Tab.Screen name="Video" component={VideoScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
