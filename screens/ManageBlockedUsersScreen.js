@@ -219,7 +219,7 @@ const styles = theme =>
       borderRadius: 8,
     },
     unblockButtonText: {
-      color: theme === 'dark' ? '#fff' : '#121212',
+      color: '#fff',
       fontWeight: '600',
     },
     emptyText: {

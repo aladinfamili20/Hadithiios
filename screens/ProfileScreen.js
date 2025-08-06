@@ -21,6 +21,8 @@ import ProfileBio from '../components/Profile/ProfileBio';
 import ProfileHeaderInfo from '../components/Profile/ProfileHeaderInfo';
 import ProfileBackground from '../components/Profile/ProfileBackground';
 import Video from 'react-native-video';
+import { SwipeListView } from 'react-native-swipe-list-view';
+
 const ProfileScreen = () => {
   const user = auth().currentUser;
   const uid = user.uid;
@@ -30,6 +32,7 @@ const ProfileScreen = () => {
   const [following, setFollowing] = useState([]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteVideoModalVisible, setDeleteVideoModalVisible] = useState(false);
+  const [deleteThreadModalVisible, setDeleteThreadVisible] = useState(false);
   const [postIdToDelete, setPostIdToDelete] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,8 +145,19 @@ const ProfileScreen = () => {
 
     return () => unsubscribe();
   }, []);
-
+  // delete posts from firebase
   const deletePost = async postId => {
+    try {
+      await firestore().collection('posts').doc(postId).delete();
+      setUserPosts(prev => prev.filter(post => post.id !== postId));
+      closeDeleteModal();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
+  // Delete thread from firebase
+  const deleteThread = async postId => {
     try {
       await firestore().collection('posts').doc(postId).delete();
       setUserPosts(prev => prev.filter(post => post.id !== postId));
@@ -173,6 +187,11 @@ const ProfileScreen = () => {
   const closeDeleteVideoModal = () => {
     setPostIdToDelete(null);
     setDeleteVideoModalVisible(false);
+  };
+
+  const closeDeleteThreadModal = () => {
+    setPostIdToDelete(null);
+    setDeleteThreadVisible(false);
   };
 
   const photoPosts = userprofileImages.filter(p => p.image && !p.video);
@@ -253,6 +272,9 @@ const ProfileScreen = () => {
   const handleRenderPosts = ({ item }) => {
     const hasImage = !!item.image;
     return (
+      // <SwipeListView
+      // >
+
       <View key={item.id} style={styles(theme, imageSize).imageContainer}>
         {hasImage ? (
           // onPress={() => navigation.navigate('postDetail', { id: item.id })}
@@ -295,6 +317,7 @@ const ProfileScreen = () => {
           <Text style={styles(theme).missingPostText}>Post unavailable</Text>
         )}
       </View>
+      // </SwipeListView>
     );
   };
 
@@ -425,7 +448,7 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles(theme, imageSize).ProfileContainer}>
-      <FlatList
+      <SwipeListView
         key={selectedTab}
         data={
           selectedTab === 'photos'
@@ -451,6 +474,9 @@ const ProfileScreen = () => {
         initialNumToRender={12}
         maxToRenderPerBatch={15}
         windowSize={10}
+        rightOpenValue={-75}
+        disableRightSwipe
+        contentContainerStyle={{ paddingBottom: 50 }}
         style={styles(theme).flatList}
         renderHiddenItem={({ item }) => (
           <View style={styles(theme).rowBack}>
@@ -458,9 +484,13 @@ const ProfileScreen = () => {
               style={styles(theme).backRightBtn}
               onPress={() => {
                 setPostIdToDelete(item.id);
-                selectedTab === 'photos'
-                  ? setDeleteModalVisible(true)
-                  : setDeleteVideoModalVisible(true);
+                if (selectedTab === 'photos') {
+                  setDeleteModalVisible(true);
+                } else if (selectedTab === 'threads') {
+                  setDeleteThreadVisible(true);
+                } else {
+                  setDeleteVideoModalVisible(true);
+                }
               }}
             >
               <Ionicons name="trash-outline" size={24} color="#fff" />
@@ -469,6 +499,7 @@ const ProfileScreen = () => {
         )}
       />
 
+      {/* Modal for deleting posts */}
       <Modal
         animationType="slide"
         transparent
@@ -502,6 +533,42 @@ const ProfileScreen = () => {
         </View>
       </Modal>
 
+      {/* Modal for deliting threads */}
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={deleteThreadModalVisible}
+        onRequestClose={closeDeleteThreadModal}
+      >
+        <View style={styles(theme, imageSize).modalContainer}>
+          <View style={styles(theme, imageSize).modalContent}>
+            <Text style={styles(theme, imageSize).modalText}>
+              Are you sure you want to delete this thread?
+            </Text>
+            <View style={styles(theme, imageSize).modalButtons}>
+              <TouchableOpacity
+                style={styles(theme, imageSize).modalButton}
+                onPress={closeDeleteThreadModal}
+              >
+                <Text style={styles(theme, imageSize).modalButtonText}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles(theme, imageSize).modalButtonRed}
+                onPress={() => deleteThread(postIdToDelete)}
+              >
+                <Text style={styles(theme, imageSize).modalButtonTextBold}>
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal for deleting videos */}
       <Modal
         animationType="slide"
         transparent
@@ -593,7 +660,7 @@ const styles = (theme, imageSize) =>
       color: '#fff',
     },
 
-      CaptionEditIconButton: {
+    CaptionEditIconButton: {
       position: 'absolute',
       top: 6,
       right: 6,

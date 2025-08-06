@@ -254,8 +254,8 @@ const UploadPost = () => {
         lastName,
         profileImage,
         uid,
-        image: imageUrl || null,
-        video: videoUrl || null,
+        image: imageUrl,
+        video: videoUrl,
         thumbnail: thumbnail || null,
         taggedUsers: taggedUsers.map(user => ({
           displayName: user.displayName,
