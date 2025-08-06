@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
+  Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -20,8 +21,6 @@ import ProfileBio from '../components/Profile/ProfileBio';
 import ProfileHeaderInfo from '../components/Profile/ProfileHeaderInfo';
 import ProfileBackground from '../components/Profile/ProfileBackground';
 import Video from 'react-native-video';
-import Image from 'react-native-image-progress';
-import { SwipeListView } from 'react-native-swipe-list-view';
 const ProfileScreen = () => {
   const user = auth().currentUser;
   const uid = user.uid;
@@ -34,16 +33,14 @@ const ProfileScreen = () => {
   const [postIdToDelete, setPostIdToDelete] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userPostsCount, setUserPostsCount] = useState(0);
   const [selectedTab, setSelectedTab] = useState('photos'); // or 'videos'
   const [userVideos, setUserVideos] = useState([]);
-  const [videoConter, setVideoCounter] = useState(0);
   const [userprofileImages, setUserProfileImages] = useState([]);
   const [threads, setThreads] = useState([]);
 
   const screenWidth = Dimensions.get('window').width;
   const imageSize = (screenWidth - 16) / 3;
-   useEffect(() => {
+  useEffect(() => {
     const fetchUserData = async () => {
       try {
         const currentUser = auth().currentUser;
@@ -178,17 +175,11 @@ const ProfileScreen = () => {
     setDeleteVideoModalVisible(false);
   };
 
- 
-
   const photoPosts = userprofileImages.filter(p => p.image && !p.video);
   const videoPosts = userVideos.filter(p => p.video);
   const captionOnlyPosts = threads.filter(
     post => post.caption && !post.image && !post.video,
   );
- 
- 
-
- 
 
   const renderAudienceProfile = () => {
     return (
@@ -368,6 +359,24 @@ const ProfileScreen = () => {
         {hasCaption ? (
           <>
             {/* Profile Header */}
+
+            <TouchableOpacity
+              style={styles(theme, imageSize).CaptionEditIconButton}
+              onPress={() =>
+                navigation.navigate('editphoto', {
+                  caption: item.caption,
+                  id: item.id,
+                  taggedUsers: item.taggedUser,
+                })
+              }
+            >
+              <Ionicons
+                name="create-outline"
+                size={15}
+                style={styles(theme, imageSize).CaptionEditIcon}
+              />
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => navigateToProfile(item.uid)}
               accessible={true}
@@ -459,8 +468,6 @@ const ProfileScreen = () => {
           </View>
         )}
       />
-
-       
 
       <Modal
         animationType="slide"
@@ -585,6 +592,20 @@ const styles = (theme, imageSize) =>
     EditIcon: {
       color: '#fff',
     },
+
+      CaptionEditIconButton: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      zIndex: 2,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: 20,
+      padding: 4,
+    },
+    CaptionEditIcon: {
+      color: '#fff',
+    },
+
     photoIcon: {
       alignSelf: 'center',
       textAlign: 'center',
@@ -687,5 +708,66 @@ const styles = (theme, imageSize) =>
       backgroundColor: 'red',
       borderTopRightRadius: 8,
       borderBottomRightRadius: 8,
+    },
+
+    // Caption styles
+
+    captionMainContainer: {
+      backgroundColor: theme === 'dark' ? '#1c1c1e' : '#f9f9f9',
+      borderRadius: 12,
+      padding: 12,
+      marginVertical: 8,
+      marginHorizontal: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+
+    captionProfileContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+
+    profileImage: {
+      width: 40,
+      height: 40,
+      borderRadius: 50,
+      marginRight: 10,
+    },
+
+    profileDetails: {
+      flex: 1,
+    },
+
+    displayName: {
+      fontWeight: '600',
+      fontSize: 16,
+      color: theme === 'dark' ? '#fff' : '#111',
+    },
+
+    timestamp: {
+      fontSize: 12,
+      color: theme === 'dark' ? '#aaa' : '#555',
+    },
+
+    captionBody: {
+      paddingTop: 4,
+      paddingBottom: 6,
+    },
+
+    captionText: {
+      fontSize: 15,
+      color: theme === 'dark' ? '#eaeaea' : '#333',
+      lineHeight: 22,
+    },
+
+    missingPostText: {
+      color: 'gray',
+      textAlign: 'center',
+      padding: 12,
+      fontStyle: 'italic',
     },
   });

@@ -36,6 +36,8 @@ const EditPhoto = () => {
   const [taggedUsers, setTaggedUsers] = useState([]);
   const [isTagModalVisible, setIsTagModalVisible] = useState(false);
   const [getError, setGetError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   useEffect(() => {
     setProfileData(userData);
   }, [userData]);
@@ -129,9 +131,6 @@ const EditPhoto = () => {
     }
   };
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-
   const handleSearch = async () => {
     try {
       setIsLoading(true);
@@ -223,8 +222,7 @@ const EditPhoto = () => {
               <Text style={styles(theme).title}>Edit photo</Text>
             </View>
 
-            <Image source={{ uri: image }} style={styles(theme).imagePreview} />
-
+ 
             {/* Caption Input */}
             <TextInput
               placeholder="Write a caption..."
@@ -234,6 +232,9 @@ const EditPhoto = () => {
               multiline
               placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
             />
+
+            <Image source={{ uri: image }} style={styles(theme).imagePreview} />
+
 
             {/* Open Modal for Tagging */}
             <TouchableOpacity
@@ -385,7 +386,7 @@ const styles = theme => ({
   },
   imagePreview: {
     width: '100%',
-    height: 300,
+    height: 200,
     borderRadius: 10,
     marginVertical: 16,
     ResizeMode: 'contain',
@@ -399,16 +400,17 @@ const styles = theme => ({
     borderRadius: 8,
     marginBottom: 16,
     textAlignVertical: 'top',
+    height: 100
   },
   openTagModalButton: {
-    backgroundColor: '#444',
+    backgroundColor: '#ddd',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 12,
   },
   openTagModalText: {
-    color: '#fff',
+    color: '#000',
     fontWeight: 'bold',
   },
   taggedUsersContainer: {
