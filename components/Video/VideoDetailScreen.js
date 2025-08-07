@@ -256,7 +256,7 @@ const styles = theme =>
       marginLeft: 10,
     },
     taggedUserText: {
-      color: 'tomato',
+      color: theme === 'dark' ? '#fff' : '#0000FF',
       fontWeight: '600',
       fontSize: 14,
     },

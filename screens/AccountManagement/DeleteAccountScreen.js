@@ -10,8 +10,8 @@ import {
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {useNavigation} from '@react-navigation/native';
-import DarkMode from '../components/Theme/DarkMode';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+ import Ionicons from 'react-native-vector-icons/Ionicons';
+import DarkMode from '../../components/Theme/DarkMode';
 
 const DeleteAccountScreen = () => {
   const theme = DarkMode();

@@ -1,4 +1,4 @@
-/* eslint-disable no-trailing-spaces */
+/* eslint-disable no-shadow */
 /* eslint-disable react-native/no-inline-styles */
 import {
   Text,
@@ -18,10 +18,11 @@ import firestore from '@react-native-firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RNModal from 'react-native-modal';
-import { auth } from '../data/Firebase';
-import { useUser } from '../data/Collections/FetchUserData';
-import DarkMode from '../components/Theme/DarkMode';
+
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { auth } from '../../data/Firebase';
+import { useUser } from '../../data/Collections/FetchUserData';
+import DarkMode from '../../components/Theme/DarkMode';
 const EditPhoto = () => {
   const { image, id } = useRoute().params;
 
@@ -77,14 +78,12 @@ const EditPhoto = () => {
         setGetError('Incomplete profile. Update your profile before posting.');
         return;
       }
-      const now = firestore.Timestamp.now();
       const today = new Date();
       const date = today.toDateString();
       const Hours = today.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       });
-      const time = today.toLocaleDateString();
       const dateEdited = today.toLocaleDateString();
 
       const postData = {
@@ -222,7 +221,6 @@ const EditPhoto = () => {
               <Text style={styles(theme).title}>Edit photo</Text>
             </View>
 
- 
             {/* Caption Input */}
             <TextInput
               placeholder="Write a caption..."
@@ -234,7 +232,6 @@ const EditPhoto = () => {
             />
 
             <Image source={{ uri: image }} style={styles(theme).imagePreview} />
-
 
             {/* Open Modal for Tagging */}
             <TouchableOpacity
@@ -356,17 +353,7 @@ const styles = theme => ({
   scrollViewContainer: {
     margin: 10,
   },
-  uploadMode: {
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  uploadVideo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'tomato',
-    padding: 10,
-    borderRadius: 8,
-  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -394,13 +381,12 @@ const styles = theme => ({
   captionInput: {
     borderWidth: 1,
     borderColor: theme === 'light' ? '#ccc' : '#444',
-    backgroundColor: theme === 'light' ? '#f9f9f9' : '#1e1e1e',
     color: theme === 'light' ? '#000' : '#fff',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     textAlignVertical: 'top',
-    height: 100
+    height: 100,
   },
   openTagModalButton: {
     backgroundColor: '#ddd',
@@ -411,7 +397,7 @@ const styles = theme => ({
   },
   openTagModalText: {
     color: '#000',
-    fontWeight: 'bold',
+    fontWeight: 'normal',
   },
   taggedUsersContainer: {
     flexDirection: 'row',

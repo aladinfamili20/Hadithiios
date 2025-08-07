@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import { ActivityIndicator, Alert, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, SafeAreaView, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { NavigationContainer } from '@react-navigation/native';
@@ -7,7 +7,6 @@ import LoginScreen from './auth/LoginScreen';
 import SignUpScreen from './auth/SignUpScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import FeedScreen from './screens/FeedScreen';
-import ProfileSetup from './screens/ProfileSetup';
 import { FetchUserData } from './data/Collections/FetchUserData';
 import UserProfileScreen from './screens/UserProfileScreen';
 import EventDetails from './screens/Event/EventDetails';
@@ -31,22 +30,23 @@ import About from './screens/InfoSupport/About';
 import Notifications from './screens/Notifications';
 import ProfileScreen from './screens/ProfileScreen';
 import Settings from './screens/Settings';
-import LickedPhotos from './screens/LickedPhotos';
-import LickedVideos from './screens/LickedVideos';
-import SavedPhotos from './screens/SavedPhotos';
-import SavedVideos from './screens/SaveVideos';
-import DeleteAccountScreen from './screens/DeleteAccountScreen';
 import SearchScreen from './screens/SearchScreen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import UploadImage from './screens/Post/UploadImage';
 import mobileAds from 'react-native-google-mobile-ads';
-import EditPhoto from './screens/EditPhoto';
-import EditVideos from './screens/EditVideos';
-import ManageBlockedUsersScreen from './screens/ManageBlockedUsersScreen';
- import FollowersScreen from './screens/FollowersScreen';
-import FollowingScreen from './screens/FollowingScreen';
 import { safeInitializeStorage } from './storage';
- import NetInfo from '@react-native-community/netinfo';
+import NetInfo from '@react-native-community/netinfo';
+import FollowersScreen from './screens/FollowFollower/FollowersScreen';
+import FollowingScreen from './screens/FollowFollower/FollowingScreen';
+import DeleteAccountScreen from './screens/AccountManagement/DeleteAccountScreen';
+import ManageBlockedUsersScreen from './screens/AccountManagement/ManageBlockedUsersScreen';
+import LickedPhotos from './screens/Interactions/LickedPhotos';
+import LickedVideos from './screens/Interactions/LickedVideos';
+import SavedPhotos from './screens/Interactions/SavedPhotos';
+import SavedVideos from './screens/Interactions/SaveVideos';
+import EditPhoto from './screens/EditScreens/EditPhoto';
+import EditVideos from './screens/EditScreens/EditVideos';
+import ProfileSetup from './screens/EditScreens/ProfileSetup';
 
 const Stack = createNativeStackNavigator();
 
@@ -172,4 +172,3 @@ useEffect(() => {
 
 export default App
 
-const styles = StyleSheet.create({})

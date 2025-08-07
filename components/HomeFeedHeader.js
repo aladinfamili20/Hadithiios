@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { auth, firestore } from '../data/Firebase';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import DarkMode from './Theme/DarkMode';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import mobileAds, {
@@ -19,7 +19,6 @@ import mobileAds, {
 } from 'react-native-google-mobile-ads';
 import {
   collection,
-  getDocs,
   getFirestore,
   onSnapshot,
   query,
@@ -45,23 +44,23 @@ const HomeFeedHeader = () => {
 
   const db = getFirestore(getApp());
 
-useEffect(() => {
-  if (!uid) return;
+  useEffect(() => {
+    if (!uid) return;
 
-  const notificationsRef = collection(db, 'notifications');
-  const notificationsQuery = query(
-    notificationsRef,
-    where('recipientId', '==', uid),
-    where('read', '==', false)
-  );
+    const notificationsRef = collection(db, 'notifications');
+    const notificationsQuery = query(
+      notificationsRef,
+      where('recipientId', '==', uid),
+      // where('postUserUid', '==', uid),
+      where('read', '==', false),
+    );
 
-  const unsubscribe = onSnapshot(notificationsQuery, snapshot => {
-    setUnreadNotifications(snapshot.size);
-  });
+    const unsubscribe = onSnapshot(notificationsQuery, snapshot => {
+      // setUnreadNotifications(snapshot.size);
+    });
 
-  return () => unsubscribe();
-}, [db, uid]);
-
+    return () => unsubscribe();
+  }, [db, uid]);
 
   useEffect(() => {
     mobileAds()
@@ -101,13 +100,13 @@ useEffect(() => {
           style={styles(theme).logo}
         />
         <View style={styles(theme).topRight}>
-          <TouchableOpacity onPress={() => navigation.navigate('event')}>
+          {/* <TouchableOpacity onPress={() => navigation.navigate('event')}>
             <Ionicons
               name="calendar-outline"
               size={25}
               color={theme === 'dark' ? '#fff' : '#121212'}
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity
             style={{ marginRight: 10 }}
             onPress={async () => {

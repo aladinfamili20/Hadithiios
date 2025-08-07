@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import {
   Linking,
   StyleSheet,
@@ -5,9 +6,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import DarkMode from '../Theme/DarkMode';
-import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
+import {
+  CommonActions,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import FecthUserProfile from '../FetchUserProfile';
 
 const AudienceProfileInfo = () => {
@@ -21,15 +26,19 @@ const AudienceProfileInfo = () => {
     setPublicProfile(userprofile);
   }, [userprofile]);
 
-    const navigateToProfile = userId => {
-      navigation.dispatch(
-        CommonActions.navigate({
-          name: 'UserProfileScreen',
-          params: {uid: userId},
-        }),
-      );
-    };
-  
+  const navigateToProfile = userId => {
+    navigation.dispatch(
+      CommonActions.navigate({
+        name: 'UserProfileScreen',
+        params: { uid: userId },
+      }),
+    );
+  };
+
+  const openUserLink = useCallback(() => {
+    if (publicProfile?.link) Linking.openURL(publicProfile.link);
+  }, [publicProfile?.link]);
+
   return (
     <View>
       <View style={styles(theme).profileNames}>
@@ -39,21 +48,13 @@ const AudienceProfileInfo = () => {
             {publicProfile?.displayName} {publicProfile?.lastName}
           </Text>
           {/* bio */}
-          {/* <Text style={styles(theme).username}>{publicProfile?.userName}</Text> */}
-          {/* username */}
           <Text style={styles(theme).username}>{publicProfile?.userName}</Text>
-          {publicProfile?.link?.lenght > 0 && (
-            <View>
-              {publicProfile.link.map((getLink, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => Linking.openURL(getLink?.link)}
-                >
-                  <Text style={styles(theme).link}>{getLink?.link}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+
+          {publicProfile?.link ? (
+            <TouchableOpacity onPress={openUserLink}>
+              <Text style={styles(theme).link}>{publicProfile.link}</Text>
+            </TouchableOpacity>
+          ) : null}
 
           {publicProfile?.taggedUsers?.length > 0 && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -100,11 +101,11 @@ const styles = theme =>
       color: theme === 'dark' ? '#fff' : '#121212',
       textDecorationLine: 'underline',
     },
-    taggedUsers:{
-           color: theme === 'dark' ? '#fff' : '#0000FF',
+    taggedUsers: {
+      color: theme === 'dark' ? '#fff' : '#0000FF',
       lineHeight: 20,
       // color: '#0000FF',
       fontWeight: '500',
       // backgroundColor: '#0000FF',
-    }
+    },
   });

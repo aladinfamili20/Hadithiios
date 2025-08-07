@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-/* eslint-disable curly */
+ 
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -12,10 +12,10 @@ import {
   FlatList,
 } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
-import firestore, { Timestamp } from '@react-native-firebase/firestore';
+import firestore  from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import DarkMode from '../components/Theme/DarkMode';
-import { useUser } from '../data/Collections/FetchUserData';
+import DarkMode from '../../components/Theme/DarkMode';
+import { useUser } from '../../data/Collections/FetchUserData';
 
 const FollowUsers = () => {
   const theme = DarkMode();
@@ -183,8 +183,8 @@ const followUser = async (currentUserId, targetUser) => {
                   source={
                     item.profileImage
                       ? { uri: item.profileImage }
-                      : require('../assets/thumblogo.png')
-                  }
+                      : require('../../assets/thumblogo.png')
+                   }
                   style={themedStyles.image}
                 />
                 <Text style={themedStyles.displayName}>

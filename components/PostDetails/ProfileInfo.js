@@ -80,8 +80,8 @@ const styles = theme =>
       margin: 10,
     },
     profileImage: {
-      width: 50,
-      height: 50,
+      width: 35,
+      height: 35,
       borderRadius: 50,
     },
     profileContainer: {

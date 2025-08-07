@@ -1,10 +1,17 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Linking, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Linking,
+  StyleSheet,
+} from 'react-native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
- import DarkMode from '../Theme/DarkMode';
+import DarkMode from '../Theme/DarkMode';
 import { useUser } from '../../data/Collections/FetchUserData';
- 
+
 const ProfileHeaderInfo = () => {
   const theme = DarkMode();
   const navigation = useNavigation();
@@ -20,11 +27,25 @@ const ProfileHeaderInfo = () => {
     if (userData?.link) Linking.openURL(userData.link);
   }, [userData?.link]);
 
+  const navigateToProfile = userId => {
+    navigation.dispatch(
+      CommonActions.navigate({
+        name: 'UserProfileScreen',
+        params: { uid: userId },
+      }),
+    );
+  };
+
   if (isLoading) {
     return (
       <SkeletonPlaceholder>
         <SkeletonPlaceholder.Item width={120} height={20} borderRadius={4} />
-        <SkeletonPlaceholder.Item marginTop={6} width={80} height={20} borderRadius={4} />
+        <SkeletonPlaceholder.Item
+          marginTop={6}
+          width={80}
+          height={20}
+          borderRadius={4}
+        />
       </SkeletonPlaceholder>
     );
   }
@@ -32,7 +53,10 @@ const ProfileHeaderInfo = () => {
   return (
     <View>
       <View style={themedStyles.profileNames}>
-        <TouchableOpacity onPress={handleEditPress} style={themedStyles.editProfileButton}>
+        <TouchableOpacity
+          onPress={handleEditPress}
+          style={themedStyles.editProfileButton}
+        >
           <Text style={themedStyles.editProfile}>Edit Profile</Text>
         </TouchableOpacity>
 
@@ -50,13 +74,27 @@ const ProfileHeaderInfo = () => {
             ) : null}
           </View>
         )}
+
+        {userData?.taggedUsers?.length > 0 && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            {userData.taggedUsers.map((tag, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => navigateToProfile(tag.uid)}
+              >
+                <Text style={styles(theme).taggedUsers}>
+                  @{tag.displayName} {tag.lastName}{' '}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
 };
 
 export default React.memo(ProfileHeaderInfo);
-
 
 const styles = theme =>
   StyleSheet.create({
@@ -103,6 +141,14 @@ const styles = theme =>
       fontSize: 15,
       fontWeight: 'normal',
       color: theme === 'dark' ? '#fff' : '#121212',
+    },
+
+    taggedUsers: {
+      color: theme === 'dark' ? '#fff' : '#0000FF',
+      lineHeight: 20,
+      // color: '#0000FF',
+      fontWeight: '500',
+      // backgroundColor: '#0000FF',
     },
     link: {
       fontSize: 15,

@@ -76,7 +76,7 @@ const PostInteranctionsScreen = ({ post }) => {
           timestamp: firestore.Timestamp.now(),
           // read: false,
           uid: uid,
-          postUserUid: post.uid,
+          recipientId: post.uid,
           postID: post.id,
           read: false,
         });

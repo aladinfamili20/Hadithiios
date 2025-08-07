@@ -1,9 +1,9 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-/* eslint-disable curly */
 /* eslint-disable no-catch-shadow */
 /* eslint-disable no-shadow */
-/* eslint-disable no-trailing-spaces */
+ 
 import {
   StyleSheet,
   Text,
@@ -26,10 +26,11 @@ import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import ImagePicker from 'react-native-image-crop-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import DarkMode from '../components/Theme/DarkMode';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import RNModal from 'react-native-modal';
-import { useUser } from '../data/Collections/FetchUserData';
+import DarkMode from '../../components/Theme/DarkMode';
+import { useUser } from '../../data/Collections/FetchUserData';
+import TaggedUsersList from '../../components/TaggedUsersList';
 
 const ProfileSetup = () => {
   const theme = DarkMode();
@@ -39,7 +40,6 @@ const ProfileSetup = () => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const themedStyles = styles(theme, width); // responsive width passed in
-  const safeWidth = typeof width === 'number' && !isNaN(width) ? width : 360;
   const [taggedUsers, setTaggedUsers] = useState([]);
   const [userName, setUserName] = useState('');
   const [backgroundImageBanner, setBackgroundImageBanner] = useState('');
@@ -51,12 +51,13 @@ const ProfileSetup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTagModalVisible, setIsTagModalVisible] = useState(false);
-  const [getError, setGetError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [getTagUser, setGetTagUser] = useState(null);
   const [tagUser, setTagUser] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [originalUserName, setOriginalUserName] = useState('');
+
   const defaultBannerImage =
     'https://images.unsplash.com/photo-1487260211189-670c54da558d?q=80&w=1587';
 
@@ -99,7 +100,9 @@ const ProfileSetup = () => {
     const timestamp = Date.now();
     const storagePath = `${folder}/${timestamp}_${fileName}`;
     const storageRef = storage().ref(storagePath);
+    // const task = storageRef.putFile(storagePath); // This handles local files
 
+    // await task;
     try {
       const response = await fetch(imagePath);
       if (!response.ok) throw new Error('Failed to fetch the image.');
@@ -128,17 +131,20 @@ const ProfileSetup = () => {
           .collection('profileUpdate')
           .doc(uid)
           .get();
+
         const data = docSnap.data();
         if (data) {
-          setUserName(data.userName || '');
+          // setUserName(data.userName || '');
+          setOriginalUserName(data.userName || ''); // <-- save original
+          setUserName(data.userName || ''); // <-- save original
           setDisplayName(data.displayName || '');
           setLastName(data.lastName || '');
           setBio(data.bio || '');
           setLink(data.link || '');
           setProfileEditImage(data.profileImage || '');
           setBackgroundImageBanner(data.backgroundImage || '');
-          setTagUser(data.taggedUsers || []); // Correctly set from Firestore
-
+          setTagUser(data.taggedUsers || []);
+          setTaggedUsers(data.taggedUsers || []); // needed for saving
         }
       } catch (err) {
         console.error('Failed to fetch user profile:', err);
@@ -147,6 +153,32 @@ const ProfileSetup = () => {
 
     fetchProfile();
   }, [uid]);
+
+
+
+  useEffect(() => {
+  const fetchProfile = async () => {
+    if (!uid) return;
+    try {
+      const docSnap = await firestore()
+        .collection('profileUpdate')
+        .doc(uid)
+        .get();
+      const data = docSnap.data();
+      if (data) {
+        // This fills both:
+        setTagUser(data.taggedUsers || []);      // for display
+        setTaggedUsers(data.taggedUsers || []);  // for saving/editing
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+  };
+
+  fetchProfile();
+}, [uid]);
+
+
 
 
   // Search users for tagging
@@ -182,80 +214,102 @@ const ProfileSetup = () => {
       setIsLoading(false);
     } catch (error) {
       console.error('Error searching users:', error);
-      setGetError('Error searching users');
+      setError('Error searching users')
       setIsLoading(false);
     }
   };
 
-  // Save profile
-
-  const handleSaveProfile = async () => {
-    if (!uid) return Alert.alert('Error', 'User is not authenticated');
-
-    setLoading(true);
-    setError('');
-    // setSuccess(''); // if using separate success state
-
-    try {
-      const now = firestore.Timestamp.now();
-      const today = new Date();
-      const date = today.toDateString();
-      const hours = today.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const dateSignedUp = today.toLocaleDateString();
-
-      const uploadedBannerImage =
-        backgroundImageBanner !== defaultBannerImage
-          ? await uploadImage(backgroundImageBanner, 'profileBackgrounds')
-          : null;
-
-      const uploadedProfileImage =
-        profileEditImage !== defaultProfileImage
-          ? await uploadImage(profileEditImage, 'profilePictures')
-          : null;
-
-      const updateData = {
-        updatedAt: now,
-        date,
-        hours,
-        dateSignedUp,
-        uid,
-      };
-
-      if (userName) updateData.userName = userName;
-      if (displayName) updateData.displayName = displayName;
-      if (lastName) updateData.lastName = lastName;
-      if (bio) updateData.bio = bio;
-      if (link) updateData.link = link;
-      if (uploadedBannerImage) updateData.backgroundImage = uploadedBannerImage;
-      if (uploadedProfileImage) updateData.profileImage = uploadedProfileImage;
-
-      if (taggedUsers.length > 0) {
-        updateData.taggedUsers = taggedUsers.map(user => ({
-          displayName: user.displayName,
-          lastName: user.lastName,
-          uid: user.uid,
-          taggedAt: firestore.Timestamp.now(),
-        }));
-      }
-
-      await firestore()
-        .collection('profileUpdate')
-        .doc(uid)
-        .set(updateData, { merge: true });
-
-      setError(''); // clear errors
-      // setSuccess('Profile updated successfully!');
-      navigation.navigate('feed');
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError(`Failed to update profile: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+  // Utility: Generate a short random ID for username uniqueness
+  const generateUniqueId = () => {
+    return `_${Math.random().toString(36).substr(2, 6)}`;
   };
+
+ const handleSaveProfile = async () => {
+  if (!uid) return Alert.alert('Error', 'User is not authenticated');
+
+  setLoading(true);
+  setError('');
+
+  try {
+    const now = firestore.Timestamp.now();
+    const today = new Date();
+    const date = today.toDateString();
+    const hours = today.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const dateSignedUp = today.toLocaleDateString();
+
+    const updateData = {
+      updatedAt: now,
+      date,
+      hours,
+      dateSignedUp,
+      uid,
+    };
+
+    // ✅ Only update username if it changed
+    if (userName && userName !== originalUserName) {
+      const uniqueUserName = userName + generateUniqueId();
+      updateData.userName = uniqueUserName;
+
+        setUserName(uniqueUserName);
+  setOriginalUserName(uniqueUserName);
+    }
+    // if(userName) updateData.userName = uniqueUserName;
+    if (displayName) updateData.displayName = displayName;
+    if (lastName) updateData.lastName = lastName;
+    if (bio) updateData.bio = bio;
+    if (link) updateData.link = link;
+
+    const uploadedBannerImage =
+      backgroundImageBanner && backgroundImageBanner !== defaultBannerImage
+        ? await uploadImage(backgroundImageBanner, 'profileBackgrounds')
+        : null;
+
+    const uploadedProfileImage =
+      profileEditImage && profileEditImage !== defaultProfileImage
+        ? await uploadImage(profileEditImage, 'profilePictures')
+        : null;
+
+    if (uploadedBannerImage) updateData.backgroundImage = uploadedBannerImage;
+    if (uploadedProfileImage) updateData.profileImage = uploadedProfileImage;
+
+    // if (taggedUsers.length > 0) {
+    //   updateData.taggedUsers = taggedUsers.map(user => ({
+    //     displayName: user.displayName,
+    //     lastName: user.lastName,
+    //     uid: user.uid,
+    //     taggedAt: firestore.Timestamp.now(),
+    //   }));
+    // }
+
+    if (taggedUsers.length > 0) {
+  updateData.taggedUsers = taggedUsers.map(user => ({
+    displayName: user.displayName,
+    lastName: user.lastName,
+    uid: user.uid,
+    profileImage:user.profileImage,
+    taggedAt: firestore.Timestamp.now(),
+  }));
+} else {
+  updateData.taggedUsers = []; // <-- include this to fully remove all if cleared
+}
+
+    await firestore()
+      .collection('profileUpdate')
+      .doc(uid)
+      .set(updateData, { merge: true });
+
+    setError('');
+    navigation.navigate('feed');
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    setError(`Failed to update profile: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const debounceRef = useRef(null);
 
@@ -272,7 +326,7 @@ const ProfileSetup = () => {
     debounceRef.current = setTimeout(() => {
       handleSearch();
     }, 400); // debounce time in ms
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [searchQuery]);
 
   useEffect(() => {
@@ -296,16 +350,15 @@ const ProfileSetup = () => {
     <KeyboardAwareScrollView
       style={styles(theme).container}
       contentContainerStyle={{ paddingBottom: 60 }}
-      enableOnAndroid={true}
+      enableOnAndroid
       extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
       keyboardShouldPersistTaps="handled"
     >
       <ImageBackground
-        // source={{ uri: backgroundImageBanner || defaultBannerImage }}
         source={
           backgroundImageBanner
             ? { uri: backgroundImageBanner }
-            : require('../assets/thumbpng.png')
+            : require('../../assets/thumbpng.png')
         }
         style={themedStyles.bannerImage}
       >
@@ -326,11 +379,10 @@ const ProfileSetup = () => {
         </View>
 
         <Image
-          // source={{ uri: profileEditImage || defaultProfileImage }}
           source={
             profileEditImage
               ? { uri: profileEditImage }
-              : require('../assets/thumblogo.png')
+              : require('../../assets/thumblogo.png')
           }
           style={themedStyles.profileImage}
         />
@@ -362,16 +414,17 @@ const ProfileSetup = () => {
           placeholder="Username"
           value={userName}
           onChangeText={setUserName}
-          placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
           autoCapitalize="none"
+          placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
         />
+
         <TextInput
           style={themedStyles.input}
           placeholder="Link"
           value={link}
           onChangeText={setLink}
-          placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
           autoCapitalize="none"
+          placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
         />
         <TextInput
           style={themedStyles.textArea}
@@ -382,24 +435,22 @@ const ProfileSetup = () => {
           placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
         />
 
-        <Text style={styles(theme).taggedAccountH2} >Tagged accounts</Text>
+        <Text style={styles(theme).taggedAccountH2}>Tagged accounts</Text>
 
-        {/* {tagUser?.taggedUsers?.length > 0 && ( */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {tagUser.map((tag, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => navigateToProfile(tag.uid)}
-              >
-                <Text style={styles(theme).userTaggedDisplayName}>
-                  @{tag.displayName}{tag.lastName} {' '}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        {/* )} */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          {tagUser.map((tag, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => navigateToProfile(tag.uid)}
+            >
+              <Text style={styles(theme).userTaggedDisplayName}>
+                @{tag.displayName}
+                {tag.lastName}{' '}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        {/* Open Modal for Tagging */}
         <TouchableOpacity
           onPress={() => setIsTagModalVisible(true)}
           style={styles(theme).openTagModalButton}
@@ -408,33 +459,14 @@ const ProfileSetup = () => {
         </TouchableOpacity>
 
         {/* Display Tagged Users */}
-        <View style={styles(theme).taggedUsersContainer}>
-          {taggedUsers.map((user, index) => (
-            <View key={index} style={styles(theme).taggedUser}>
-              <View style={styles(theme).taggedDisplayInfo}>
-                <Image
-                source={
-              user?.profileImage
-                ? { uri: user.profileImage }
-                : require('../assets/thumblogo.png')
-            }
-                   style={styles(theme).TaggedProfileImage}
-                />
-                <Text style={styles(theme).taggedUserName}>
-                  {user.displayName} {user.lastName}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() =>
-                  setTaggedUsers(taggedUsers.filter(u => u.id !== user.id))
-                }
-              >
-                <Text style={styles(theme).removeTagButton}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+        <TaggedUsersList
+          taggedUsers={taggedUsers}
+          setTaggedUsers={setTaggedUsers}
+          theme={theme}
+          styles={styles}
+        />
 
+        {/* Tagging Modal */}
         <RNModal
           isVisible={isTagModalVisible}
           onBackdropPress={() => setIsTagModalVisible(false)}
@@ -451,7 +483,7 @@ const ProfileSetup = () => {
               <TextInput
                 placeholder="Search users..."
                 value={searchQuery}
-                 onChangeText={setSearchQuery}
+                onChangeText={setSearchQuery}
                 style={styles(theme).searchBar}
                 placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
               />
@@ -468,8 +500,7 @@ const ProfileSetup = () => {
             </View>
 
             <FlatList
-              // data={searchResults}
-              data={searchResults.slice(0, 10)} 
+              data={searchResults.slice(0, 10)}
               keyExtractor={item => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -506,13 +537,12 @@ const ProfileSetup = () => {
         ) : (
           <TouchableOpacity
             style={themedStyles.saveButton}
-            onPress={handleSaveProfile}
-          >
+            onPress={handleSaveProfile}>
             <Text style={themedStyles.saveButtonText}>Save</Text>
           </TouchableOpacity>
         )}
 
-        {error && <Text style={themedStyles.errorText}>{error}</Text>}
+        {!!error && <Text style={themedStyles.errorText}>{error}</Text>}
       </View>
     </KeyboardAwareScrollView>
   );
@@ -584,12 +614,12 @@ export const styles = (theme, width) =>
       borderRadius: 10,
       alignItems: 'center',
       marginBottom: 16,
-      marginTop: 10
+      marginTop: 10,
     },
     openTagModalText: {
       color: theme === 'dark' ? '#fff' : '#000',
       fontWeight: '500',
-     },
+    },
     taggedUsersContainer: {
       marginBottom: 16,
     },
@@ -605,16 +635,15 @@ export const styles = (theme, width) =>
       color: theme === 'dark' ? '#fff' : '#000',
       fontSize: 16,
     },
-    taggedAccountH2:{
+    taggedAccountH2: {
       color: theme === 'dark' ? '#fff' : '#000',
-      
     },
-    userTaggedDisplayName:{
-     color: theme === 'dark' ? '#fff' : '#0000FF',
-     fontSize: 12, 
-     lineHeight: 20,
-     fontWeight: '500',
-     marginBottom: 10
+    userTaggedDisplayName: {
+      color: theme === 'dark' ? '#fff' : '#0000FF',
+      fontSize: 12,
+      lineHeight: 20,
+      fontWeight: '500',
+      marginBottom: 10,
     },
     removeTagButton: {
       color: 'tomato',

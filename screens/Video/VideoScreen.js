@@ -292,7 +292,7 @@ const styles = theme =>
     },
     noPostsText: {
       fontSize: 16,
-      color: '#555555',
+      color: theme === 'dark' ? '#fff' : '#121212',
       textAlign: 'center',
       marginBottom: 20,
     },

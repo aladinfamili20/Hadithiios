@@ -249,14 +249,14 @@ const SearchScreen = () => {
                   <Image
                     source={{ uri: item.profileImage }}
                     // style={styles(theme).profileImage}
-                    style={{ width: 30, height: 30, borderRadius: 20 }}
+                    style={{ width: 35, height: 35, borderRadius: 20 }}
                   />
                 </View>
                 <View style={styles(theme).textContainer}>
                   <Text style={styles(theme).displayName}>
                     {item.displayName} {item.lastName}
                   </Text>
-                  <Text style={styles(theme).username}>{item.username}</Text>
+                  <Text style={styles(theme).username}>@{item.userName}</Text>
                 </View>
               </View>
               <Divider />
@@ -319,7 +319,8 @@ const styles = theme =>
     },
     searchInfo: {
       flexDirection: 'row',
-      alignItems: 'center',
+      // alignItems: 'center',
+
     },
     SearchPhotoContainer: {
       // width: '100%',
@@ -335,7 +336,8 @@ const styles = theme =>
     // },
 
     textContainer: {
-      marginLeft: 15,
+      marginLeft: 10,
+      // marginBottom: 5
     },
     displayName: {
       // fontSize: 18,

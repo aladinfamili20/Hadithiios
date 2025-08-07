@@ -17,9 +17,9 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
-import VideoHandler from '../components/VideoHandler';
-import Divider from '../components/Divider';
-import DarkMode from '../components/Theme/DarkMode';
+import VideoHandler from '../../components/VideoHandler';
+import DarkMode from '../../components/Theme/DarkMode';
+ 
 
 const SavedVideos = () => {
   const theme = DarkMode();

@@ -1,13 +1,13 @@
 /* eslint-disable react-native/no-inline-styles */
-import { Modal, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import React, {useState} from 'react';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
 import DarkMode from '../Theme/DarkMode';
-import {useNavigation} from '@react-navigation/native';
-import {ScrollView} from 'react-native-gesture-handler';
-import {truncateString} from '../TextShortner';
- import Image from 'react-native-image-progress';
+import { useNavigation } from '@react-navigation/native';
+import { ScrollView } from 'react-native-gesture-handler';
+import { truncateString } from '../TextShortner';
+import Image from 'react-native-image-progress';
 
-const PostDetailsScreen = ({post}) => {
+const PostDetailsScreen = ({ post }) => {
   const theme = DarkMode();
   const navigation = useNavigation();
 
@@ -17,40 +17,41 @@ const PostDetailsScreen = ({post}) => {
   const closeCaption = () => setCaptionModal(false);
 
   const navigateToProfile = userId => {
-    navigation.navigate('UserProfileScreen', {uid: userId});
+    navigation.navigate('UserProfileScreen', { uid: userId });
   };
   return (
     <View style={styles(theme).container}>
       <View style={styles(theme).displayNameTagging}>
-  {post?.taggedUsers?.length > 0 && (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-      {post.taggedUsers.map((tag, index) => (
-        <TouchableOpacity
-          key={index}
-          onPress={() => navigateToProfile(tag.uid)}>
-          <Text style={styles(theme).taggedUsers}>
-            @{tag.displayName} {tag.lastName}{' '}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  )}
+        {post?.taggedUsers?.length > 0 && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            {post.taggedUsers.map((tag, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => navigateToProfile(tag.uid)}
+              >
+                <Text style={styles(theme).taggedUsers}>
+                  @{tag.displayName} {tag.lastName}{' '}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-  {post?.caption?.trim().length > 0 && (
-    <TouchableOpacity onPress={openCaption}>
-      <Text style={styles(theme).captionText}>
-        {truncateString(post?.caption, 200)}
-      </Text>
-    </TouchableOpacity>
-  )}
-</View>
-
+        {post?.caption?.trim().length > 0 && (
+          <TouchableOpacity onPress={openCaption}>
+            <Text style={styles(theme).captionText}>
+              {truncateString(post?.caption, 200)}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <Modal
         animationType="slide"
         transparent={true}
         visible={captionModal}
-        onRequestClose={closeCaption}>
+        onRequestClose={closeCaption}
+      >
         <View>
           <View style={styles(theme).CaptionModalContainer}>
             <View style={styles(theme).CaptionModalContent}>
@@ -71,17 +72,18 @@ const PostDetailsScreen = ({post}) => {
 
       {post?.image && (
         <TouchableOpacity
-          onPress={() => navigation.navigate('postDetail', {id: post.id})}
+          onPress={() => navigation.navigate('postDetail', { id: post.id })}
           style={styles(theme).imageContainer}
-          >
-          <Image source={{uri: post?.image}}
-          // style={styles(theme).image}
-          style={{
-                    width: '100%',
-                    borderRadius: 20,
-                    aspectRatio: 4 / 5,
-                    // overflow: 'hidden',
-                  }}
+        >
+          <Image
+            source={{ uri: post?.image }}
+            // style={styles(theme).image}
+            style={{
+              width: '100%',
+              borderRadius: 20,
+              aspectRatio: 4 / 5,
+              // overflow: 'hidden',
+            }}
           />
         </TouchableOpacity>
       )}
@@ -150,9 +152,9 @@ const styles = theme =>
       width: '100%',
       marginTop: 10,
     },
-      imageContainer: {
-    borderRadius: 20,
-    overflow: 'hidden', // critical!
-    marginTop:10
-  },
+    imageContainer: {
+      borderRadius: 20,
+      overflow: 'hidden', // critical!
+      marginTop: 10,
+    },
   });

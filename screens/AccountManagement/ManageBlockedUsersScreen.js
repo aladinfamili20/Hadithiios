@@ -11,10 +11,10 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { auth, firestore } from '../data/Firebase';
-import DarkMode from '../components/Theme/DarkMode';
+import { auth, firestore } from '../../data/Firebase';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CommonActions, useNavigation } from '@react-navigation/native';
+import DarkMode from '../../components/Theme/DarkMode';
 
 const ManageBlockedUsersScreen = () => {
   const [blockedUsers, setBlockedUsers] = useState([]);

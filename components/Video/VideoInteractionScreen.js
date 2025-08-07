@@ -30,7 +30,6 @@ const VideoInteractionScreen = ({ post }) => {
   const theme = DarkMode();
   const navigation = useNavigation();
   const { userData } = useUser();
-
   const [comment, setComment] = useState('');
   const [userInfoProfileFetch, setUserProfileFetch] = useState(null);
   const [openCommentModal, setOpenCommentModal] = useState(false);
@@ -45,7 +44,10 @@ const VideoInteractionScreen = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes_by_user || []);
   const [isSaved, setIsSaved] = useState(false);
+  const [replies, setReplies] = useState({}); // Track replies for each comment
+  const [replyingToCommentId, setReplyingToCommentId] = useState(null); // Track the comment being replied to
 
+  // useEffects
   useEffect(() => {
     setLikes(post.likes_by_user || []);
     setIsLiked(uid && post.likes_by_user?.includes(uid));
@@ -60,9 +62,6 @@ const VideoInteractionScreen = ({ post }) => {
     setGetUserInfo(userData);
   }, [userData]);
 
-  const [replies, setReplies] = useState({}); // Track replies for each comment
-  const [replyingToCommentId, setReplyingToCommentId] = useState(null); // Track the comment being replied to
-
   useEffect(() => {
     setUserProfileFetch(userData);
   }, [userData]);
@@ -74,6 +73,7 @@ const VideoInteractionScreen = ({ post }) => {
     }
 
     const postRef = firestore().collection('videos').doc(post.id);
+    const { displayName, lastName, profileImage } = userInfoProfileFetch;
 
     try {
       const alreadyLiked = likes.includes(uid);
@@ -91,6 +91,19 @@ const VideoInteractionScreen = ({ post }) => {
           ? firestore.FieldValue.arrayRemove(uid)
           : firestore.FieldValue.arrayUnion(uid),
       });
+
+      await firestore()
+        .collection('notifications')
+        .add({
+          lickerDisplayName: `${displayName} ${lastName}`,
+          lickerProfileImage: profileImage,
+          postImage: post.image,
+          timestamp: firestore.Timestamp.now(),
+          uid: uid,
+          recipientId: post.uid,
+          postID: post.id,
+          read: false,
+        });
     } catch (error) {
       console.error('Error updating likes:', error);
       setGetError('There was an error liking the post. Please try again.');
@@ -104,46 +117,46 @@ const VideoInteractionScreen = ({ post }) => {
     }
 
     try {
-      const { displayName, lastName, profileImage } = userInfoProfileFetch;
+      const { displayName, lastName, profileImage, uid } = userInfoProfileFetch;
       const today = new Date();
       const date = today.toDateString();
-      const Hours = today.toLocaleTimeString([], {
+      const hourPosted = today.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       });
 
+      const newReply = {
+        uploadedDate: date,
+        HourPostes: hourPosted,
+        displayName,
+        profileImage,
+        lastName,
+        uid,
+        reply: replies[commentId],
+      };
+
+      // Update comment with new reply
       const updatedComments = post.comments.map(comment => {
         if (comment.id === commentId) {
+          const existingReplies = comment.replies || [];
           return {
             ...comment,
-            replies: [
-              ...(comment.replies || []),
-              {
-                // id: generateUniqueId(),
-                uploadedDate: date,
-                HourPostes: Hours,
-                displayName,
-                profileImage,
-                lastName,
-                uid: user.uid,
-                reply: replies[commentId],
-              },
-            ],
+            replies: [...existingReplies, newReply],
           };
         }
         return comment;
       });
 
+      // Update Firestore
       await firestore().collection('videos').doc(post.id).update({
         comments: updatedComments,
       });
 
-      setReplies(prevReplies => ({
-        ...prevReplies,
-        [commentId]: '', // Clear reply input for the current comment
+      // Clear reply input
+      setReplies(prev => ({
+        ...prev,
+        [commentId]: '',
       }));
-      setGetComments(updatedComments);
-      setReplyingToCommentId(null);
 
       console.log('Reply added successfully!');
     } catch (error) {
@@ -188,8 +201,6 @@ const VideoInteractionScreen = ({ post }) => {
       setGetError('Error saving post. Please try again.');
     }
   };
-
-  const isPostSaved = uid && post.saved_by_user?.includes(uid);
 
   // Upload comment to Firestore
   const CommentsToFirebase = async () => {
@@ -311,6 +322,85 @@ const VideoInteractionScreen = ({ post }) => {
       );
     }
   };
+
+  const toggleCommentLike = async commentId => {
+    if (!post || !userData) return;
+
+    const updatedComments = post.comments.map(comment => {
+      if (comment.id === commentId) {
+        const existingLikes = comment.likes || [];
+        const userHasLiked = existingLikes.includes(userData.uid);
+
+        return {
+          ...comment,
+          likes: userHasLiked
+            ? existingLikes.filter(uid => uid !== userData.uid)
+            : [...existingLikes, userData.uid],
+        };
+      }
+      return comment;
+    });
+
+    try {
+      await firestore()
+        .collection('videos')
+        .doc(post.id)
+        .update({ comments: updatedComments });
+
+      // setGetComments(prev => ({
+      //   ...prev,
+      //   comments: updatedComments,
+      // }));
+      setGetComments(updatedComments);
+    } catch (error) {
+      console.error('Failed to toggle like: ', error);
+    }
+  };
+
+  const toggleReplyLike = async (commentId, replyIndex) => {
+    if (!post || !userData) return;
+
+    const updatedComments = post.comments.map(comment => {
+      if (comment.id === commentId) {
+        const updatedReplies = comment.replies.map((reply, idx) => {
+          if (idx === replyIndex) {
+            const existingLikes = reply.likes || [];
+            const userHasLiked = existingLikes.includes(userData.uid);
+
+            return {
+              ...reply,
+              likes: userHasLiked
+                ? existingLikes.filter(uid => uid !== userData.uid)
+                : [...existingLikes, userData.uid],
+            };
+          }
+          return reply;
+        });
+
+        return {
+          ...comment,
+          replies: updatedReplies,
+        };
+      }
+      return comment;
+    });
+
+    try {
+      await firestore()
+        .collection('videos')
+        .doc(post.id)
+        .update({ comments: updatedComments });
+
+      // setGetComments(prev => ({
+      //   ...prev,
+      //   comments: updatedComments,
+      // }));
+      setGetComments(updatedComments);
+    } catch (error) {
+      console.error('Failed to toggle reply like: ', error);
+    }
+  };
+
   return (
     <View>
       {/* Interaction Buttons: Like, Comment, Save */}
@@ -448,158 +538,247 @@ const VideoInteractionScreen = ({ post }) => {
       </RNModal>
       <Divider />
 
-   <Modal
-  animationType="slide"
-  transparent={true}
-  visible={openCommentModal}
-  onRequestClose={closeModal}
->
-  <KeyboardAvoidingView
-    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    style={{ flex: 1 }}
-  >
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles(theme).modalOverlay}>
-        <View style={styles(theme).modalContent}>
-          <TouchableOpacity
-            onPress={closeModal}
-            style={styles(theme).closeModal}
-          >
-            <Ionicons
-              name="close"
-              size={24}
-              color={theme === 'dark' ? '#fff' : '#121212'}
-            />
-          </TouchableOpacity>
+      {/* Comments sections modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={openCommentModal}
+        onRequestClose={closeModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles(theme).modalOverlay}>
+              <View style={styles(theme).modalContent}>
+                <TouchableOpacity
+                  onPress={closeModal}
+                  style={styles(theme).closeModal}
+                >
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={theme === 'dark' ? '#fff' : '#121212'}
+                  />
+                </TouchableOpacity>
 
-          <Text style={styles(theme).modalTitle}>Comments</Text>
+                <Text style={styles(theme).modalTitle}>Comments</Text>
 
-         <ScrollView style={{ marginBottom: 10 }}>
-                         {getComments.length > 0 ? (
- getComments.map((comment, index) => (
-   <View key={index} style={styles(theme).commenterContainer}>
-     <TouchableOpacity
-       onPress={() => navigateToProfile(comment.uid)}
-     >
-       <Image
-          source={comment.profileImage ? {uri: comment.profileImage}   : require('../../assets/thumblogo.png')}
+                <ScrollView style={{ marginBottom: 10 }}>
+                  {getComments.length > 0 ? (
+                    getComments.map((comment, index) => (
+                      <View
+                        key={comment.id}
+                        style={styles(theme).commenterContainer}
+                      >
+                        <TouchableOpacity
+                          onPress={() => navigateToProfile(comment.uid)}
+                        >
+                          <Image
+                            source={
+                              comment.profileImage
+                                ? { uri: comment.profileImage }
+                                : require('../../assets/thumblogo.png')
+                            }
+                            style={styles(theme).commentProfileImage}
+                          />
+                        </TouchableOpacity>
 
-         style={styles(theme).commentProfileImage}
-       />
-     </TouchableOpacity>
-         
-     <View style={styles(theme).commentProfileInfo}>
-       <TouchableOpacity
-         onPress={() => navigateToProfile(comment.uid)}
-       >
-         <Text style={styles(theme).CommentDisplayName}>
-           {comment.displayName} {comment.lastName}
-         </Text>
-       </TouchableOpacity>
-       <Text style={styles(theme).commentText}>
-         {comment.comment}
-       </Text>
-         
-       {/* Replies */}
-       {comment.replies?.length > 0 && (
-         <View style={styles(theme).replyList}>
-           {comment.replies.map((reply, replyIndex) => (
-             <View
-               key={replyIndex}
-               style={styles(theme).ReplyCommenterContainer}
-             >
-               <TouchableOpacity
-                 onPress={() => navigateToProfile(reply.uid)}
-               >
-                 <Image
-                 source={reply.profileImage ? {uri: reply.profileImage}   : require('../../assets/thumblogo.png')}
+                        <View style={styles(theme).commentProfileInfo}>
+                          <TouchableOpacity
+                            onPress={() => navigateToProfile(comment.uid)}
+                          >
+                            <Text style={styles(theme).CommentDisplayName}>
+                              {comment.displayName} {comment.lastName}
+                            </Text>
+                          </TouchableOpacity>
 
-                   style={
-                     styles(theme).ReplyCommentProfileImage
-                   }
-                 />
-               </TouchableOpacity>
-               <View
-                 style={styles(theme).ReplycommentProfileInfo}
-               >
-                 <TouchableOpacity
-                   onPress={() => navigateToProfile(reply.uid)}
-                 >
-                   <Text style={styles(theme).replyUserName}>
-                     {reply.displayName} {reply.lastName}
-                   </Text>
-                 </TouchableOpacity>
-                 <Text style={styles(theme).replyText}>
-                   {reply.reply}
-                 </Text>
-               </View>
-             </View>
-           ))}
-         </View>
-       )}
-         
-       {/* Reply Input */}
-       <TouchableOpacity
-         onPress={() => setReplyingToCommentId(comment.id)}
-       >
-         <Text style={styles(theme).replyButton}>Reply</Text>
-       </TouchableOpacity>
-         
-       {replyingToCommentId === comment.id && (
-         <View style={styles(theme).replyInputContainer}>
-           <TextInput
-             style={styles(theme).replyInput}
-             placeholder="Write a reply..."
-             placeholderTextColor={
-               theme === 'dark' ? '#bbb' : '#888'
-             }
-             value={replies[comment.id] || ''}
-             onChangeText={text =>
-               setReplies(prev => ({
-                 ...prev,
-                 [comment.id]: text,
-               }))
-             }
-           />
-           <TouchableOpacity
-             onPress={() => addReplyToFirebase(comment.id)}
-           >
-             <Ionicons name="send" size={20} color="#FF4500" />
-           </TouchableOpacity>
-         </View>
-       )}
-     </View>
-   </View>
- ))
-                         ) : (
- <Text
-   style={{ color: theme === 'dark' ? '#fff' : '#121212' }}
- >
-   No comments yet.
-                           </Text>
-                         )}
-                       </ScrollView>
+                          {/* lIKE  */}
 
-          {/* Sticky Comment Input */}
-          <View style={styles(theme).commentSectionSticky}>
-            <TextInput
-              style={styles(theme).commentInput}
-              placeholder="Add a comment..."
-              placeholderTextColor={theme === 'dark' ? '#ccc' : '#666'}
-              onChangeText={setComment}
-              value={comment}
-              maxLength={1500}
-            />
-            <TouchableOpacity onPress={CommentsToFirebase}>
-              <Ionicons name="send" size={24} color="#ff6347" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </TouchableWithoutFeedback>
-  </KeyboardAvoidingView>
-</Modal>
+                          <View
+                            style={styles.apply(theme).commentsLikeContents}
+                          >
+                            <Text style={styles(theme).commentText}>
+                              {comment.comment}
+                            </Text>
+
+                            <View style={styles(theme).commentLike}>
+                              <TouchableOpacity
+                                onPress={() => toggleCommentLike(comment.id)}
+                              >
+                                <Ionicons
+                                  name={
+                                    comment.likes?.includes(userData.uid)
+                                      ? 'heart'
+                                      : 'heart-outline'
+                                  }
+                                  size={20}
+                                  color={
+                                    comment.likes?.includes(userData.uid)
+                                      ? '#FF4500'
+                                      : '#888'
+                                  }
+                                />
+                              </TouchableOpacity>
+                              <Text style={styles(theme).likeCountText}>
+                                {comment.likes?.length}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Replies */}
+                          {comment.replies?.length > 0 && (
+                            <View style={styles(theme).replyList}>
+                              {comment.replies.map((reply, replyIndex) => (
+                                <View
+                                  key={comment.id}
+                                  style={styles(theme).ReplyCommenterContainer}
+                                >
+                                  <TouchableOpacity
+                                    onPress={() => navigateToProfile(reply.uid)}
+                                  >
+                                    <Image
+                                      source={
+                                        reply.profileImage
+                                          ? { uri: reply.profileImage }
+                                          : require('../../assets/thumblogo.png')
+                                      }
+                                      style={
+                                        styles(theme).ReplyCommentProfileImage
+                                      }
+                                    />
+                                  </TouchableOpacity>
+                                  <View
+                                    style={
+                                      styles(theme).ReplycommentProfileInfo
+                                    }
+                                  >
+                                    <TouchableOpacity
+                                      onPress={() =>
+                                        navigateToProfile(reply.uid)
+                                      }
+                                    >
+                                      <Text style={styles(theme).replyUserName}>
+                                        {reply.displayName} {reply.lastName}
+                                      </Text>
+                                    </TouchableOpacity>
+
+                                    <View
+                                      style={
+                                        styles.apply(theme).commentsLikeContents
+                                      }
+                                    >
+                                      <Text style={styles(theme).commentText}>
+                                        {reply.reply}
+                                      </Text>
+
+                                      <View style={styles(theme).commentLike}>
+                                        <TouchableOpacity
+                                          onPress={() =>
+                                            toggleReplyLike(
+                                              comment.id,
+                                              replyIndex,
+                                            )
+                                          }
+                                        >
+                                          <Ionicons
+                                            name={
+                                              reply.likes?.includes(
+                                                userData.uid,
+                                              )
+                                                ? 'heart'
+                                                : 'heart-outline'
+                                            }
+                                            size={18}
+                                            color={
+                                              reply.likes?.includes(
+                                                userData.uid,
+                                              )
+                                                ? '#FF4500'
+                                                : '#888'
+                                            }
+                                          />
+                                        </TouchableOpacity>
+                                        <Text
+                                          style={styles(theme).likeCountText}
+                                        >
+                                          {reply.likes?.length}
+                                        </Text>
+                                      </View>
+                                    </View>
+                                  </View>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+
+                          {/* Reply Input */}
+                          <TouchableOpacity
+                            onPress={() => setReplyingToCommentId(comment.id)}
+                          >
+                            <Text style={styles(theme).replyButton}>Reply</Text>
+                          </TouchableOpacity>
+
+                          {replyingToCommentId === comment.id && (
+                            <View style={styles(theme).replyInputContainer}>
+                              <TextInput
+                                style={styles(theme).replyInput}
+                                placeholder="Write a reply..."
+                                placeholderTextColor={
+                                  theme === 'dark' ? '#bbb' : '#888'
+                                }
+                                value={replies[comment.id] || ''}
+                                onChangeText={text =>
+                                  setReplies(prev => ({
+                                    ...prev,
+                                    [comment.id]: text,
+                                  }))
+                                }
+                              />
+                              <TouchableOpacity
+                                onPress={() => addReplyToFirebase(comment.id)}
+                              >
+                                <Ionicons
+                                  name="send"
+                                  size={20}
+                                  color="#FF4500"
+                                />
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text
+                      style={{ color: theme === 'dark' ? '#fff' : '#121212' }}
+                    >
+                      No comments yet.
+                    </Text>
+                  )}
+                </ScrollView>
+
+                {/* Sticky Comment Input */}
+                <View style={styles(theme).commentSectionSticky}>
+                  <TextInput
+                    style={styles(theme).commentInput}
+                    placeholder="Add a comment..."
+                    placeholderTextColor={theme === 'dark' ? '#ccc' : '#666'}
+                    onChangeText={setComment}
+                    value={comment}
+                    maxLength={1500}
+                  />
+                  <TouchableOpacity onPress={CommentsToFirebase}>
+                    <Ionicons name="send" size={24} color="#ff6347" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* </>
       )} */}
@@ -655,8 +834,8 @@ const styles = theme =>
       marginBottom: 15,
     },
     commentProfileImage: {
-      width: 40,
-      height: 40,
+      width: 35,
+      height: 35,
       borderRadius: 20,
     },
     commentProfileInfo: {
@@ -669,6 +848,15 @@ const styles = theme =>
     },
     commentText: {
       color: theme === 'dark' ? '#ccc' : '#444',
+    },
+    commentsLikeContents: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    commentLike: {
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     // replyList: {
     //   marginTop: 5,
@@ -736,18 +924,18 @@ const styles = theme =>
     //   color: theme === 'dark' ? '#fff' : '#121212',
     // },
 
-  commentInput: {
-  flex: 1,
-  paddingVertical: 8,
-  paddingHorizontal: 12,
-  borderWidth: 1,
-  borderRadius: 20,
-  borderColor: '#ddd',
-  backgroundColor: '#f9f9f9',
-  marginRight: 10,
-  color: '#000',
-  maxHeight: 120,
-},
+    commentInput: {
+      flex: 1,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderRadius: 20,
+      borderColor: '#ddd',
+      backgroundColor: '#f9f9f9',
+      marginRight: 10,
+      color: '#000',
+      maxHeight: 120,
+    },
 
     // Modal Styles
     modal: {
@@ -838,14 +1026,12 @@ const styles = theme =>
     },
 
     commentSectionSticky: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-  borderTopWidth: 1,
-  borderColor: '#ccc',
-  backgroundColor: '#fff',
-},
- 
-
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderColor: '#ccc',
+      backgroundColor: '#fff',
+    },
   });

@@ -195,7 +195,9 @@ const UploadPost = () => {
 
   const uploadImage = async () => {
     if (!media?.uri) return null;
-    const ref = storage().ref(`photos/${Date.now()}_${uid}.jpg`);
+    // const ref = storage().ref(`photos/${Date.now()}_${uid}.jpg`);
+    const ref = storage().ref(`photos/${uid}/${Date.now()}.jpg`);
+
     try {
       await ref.putFile(media.uri);
       return await ref.getDownloadURL();
@@ -624,7 +626,7 @@ const styles = theme =>
     },
     taggedUsersContainer: {
       marginBottom: 16,
-      marginTop: 10
+      marginTop: 10,
     },
     taggedUser: {
       flexDirection: 'row',

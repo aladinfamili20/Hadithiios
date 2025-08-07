@@ -127,7 +127,7 @@ const truncateString = (str, maxLength) => {
                 {post?.displayName} {truncateString(post?.lastName, 15)}
               </Text>
             </TouchableOpacity>
-            <Text style={styles(theme).timetemp}>{post?.datePosted}</Text>
+            <Text style={styles(theme).timetemp}>Post on: {post?.time}</Text>
           </View>
         </View>
         <TouchableOpacity onPress={() => openReportModal(post?.id)}>
@@ -202,8 +202,8 @@ const styles = theme =>
       margin: 10,
     },
     profileImage: {
-      width: 50,
-      height: 50,
+      width: 35,
+      height: 35,
       borderRadius: 50,
     },
     postmainheader: {

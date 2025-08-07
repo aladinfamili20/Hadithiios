@@ -122,7 +122,9 @@ import {truncateString} from '../TextShortner';
                     {post?.displayName} {truncateString(post?.lastName, 15)}
                   </Text>
                 </TouchableOpacity>
-                <Text style={styles(theme).timetemp}>{post?.time}</Text>
+                {/* <Text style={styles(theme).timetemp}>@{post?.userName}</Text> */}
+                <Text style={styles(theme).timetemp}>Posted on: {post?.time}</Text>
+
               </View>
             </View>
             <TouchableOpacity onPress={() => openReportModal(post?.id)}>
@@ -200,8 +202,8 @@ const styles = theme =>
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
     },
     profileImage: {
-      width: 50,
-      height: 50,
+      width: 35,
+      height: 35,
       borderRadius: 50,
     },
     postmainheader: {

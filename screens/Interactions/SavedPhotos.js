@@ -15,7 +15,7 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
-import PostHandler from '../components/PostHandler';
+import PostHandler from '../../components/PostHandler';
 
 const SavedPhotos = () => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());

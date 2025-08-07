@@ -28,6 +28,7 @@ const ProfileBio = () => {
           </Text>
         )}
       </View>
+      
       <Modal
         animationType="slide"
         transparent={true}

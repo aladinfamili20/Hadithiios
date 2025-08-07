@@ -1,6 +1,6 @@
-/* eslint-disable react-native/no-inline-styles */
+ 
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DarkMode from '../Theme/DarkMode';
 import { useRoute } from '@react-navigation/native';
 import { auth, firestore } from '../../data/Firebase';
@@ -8,11 +8,9 @@ import FetchFriendsCollection from '../FetchFriendsCollection';
 import FecthUserProfile from '../FetchUserProfile';
 import { useUser } from '../../data/Collections/FetchUserData';
 import { currentLoggedInUserData } from '../FetchFollowingData';
-import { Timestamp } from '@react-native-firebase/firestore';
 
 const AudienceFriends = () => {
   const route = useRoute();
-
   const { uid } = route.params;
   const user = auth().currentUser;
   const { getCurrentLoggedIn } = currentLoggedInUserData();
@@ -23,10 +21,8 @@ const AudienceFriends = () => {
   const [publicProfile, setPublicProfile] = useState(null);
   const [fetchFriends, setFetchFriends] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [currentLoggedInUser, setCurrentLoggedInUser] = useState(null);
   const [getProfInfo, setGetProfInfo] = useState(null);
   const [getError, setGetError] = useState('');
-  const [followingUserId, setFollowingUserId] = useState(null);
 
   console.log('Profile info', getProfInfo);
 
@@ -42,9 +38,6 @@ const AudienceFriends = () => {
     setFetchFriends(friends);
   }, [friends]);
 
-  useEffect(() => {
-    setCurrentLoggedInUser(getCurrentLoggedIn);
-  }, [getCurrentLoggedIn]);
 
 const handleFollow = async () => {
   const currentUserId = user?.uid;
@@ -102,7 +95,6 @@ const handleFollow = async () => {
     setGetError('Follow/unfollow failed. Please try again.');
   }
 };
-
 
   useEffect(() => {
     if (

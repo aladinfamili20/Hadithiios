@@ -13,9 +13,9 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
-import PostHandler from '../components/PostHandler';
-import DarkMode from '../components/Theme/DarkMode';
-
+import DarkMode from '../../components/Theme/DarkMode';
+import PostHandler from '../../components/PostHandler';
+  
 const LickedPhotos = () => {
   const theme = DarkMode();
   const user = auth().currentUser;

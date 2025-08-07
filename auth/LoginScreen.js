@@ -61,7 +61,9 @@ const LoginScreen = () => {
       // navigation.replace('feed');
     } catch (error) {
       console.error(error);
-      Alert.alert('Something went wrong!' + 'please check your email or password.')
+      Alert.alert(
+        'Something went wrong!' + 'please check your email or password.',
+      );
       setLoginError('Error logging in, incorrent email or password');
       // let message = 'Something went wrong!' + 'please check your email or password.';
       let message =
@@ -141,7 +143,7 @@ const LoginScreen = () => {
                 />
               </TouchableOpacity>
             </View>
-           </View>
+          </View>
 
           <TouchableOpacity
             style={[

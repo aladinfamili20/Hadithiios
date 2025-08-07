@@ -1,21 +1,13 @@
-/* eslint-disable curly */
-/* eslint-disable no-trailing-spaces */
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-dupe-keys */
-/* eslint-disable no-shadow */
-/* eslint-disable no-self-compare */
-/* eslint-disable react-native/no-inline-styles */
-import {StyleSheet, View} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import React from 'react';
-import {firestore} from '../data/Firebase';
+import { firestore } from '../data/Firebase';
 import auth from '@react-native-firebase/auth';
 import DarkMode from './Theme/DarkMode';
 import VideoHeader from './Video/VideoHeader';
 import VideoInteractionScreen from './Video/VideoInteractionScreen';
 import VideoDetailScreen from './Video/VideoDetailScreen';
-import VideosAds from '../screens/Video/VideosAds';
 
-const VideoHandler = ({post}) => {
+const VideoHandler = ({ post }) => {
   const theme = DarkMode();
   const user = auth().currentUser;
 
@@ -47,7 +39,7 @@ const VideoHandler = ({post}) => {
   return (
     <View style={styles(theme).container}>
       <View style={styles(theme).postHeader}>
-        <VideoHeader post={post} theme={theme} user={user} />
+      <VideoHeader post={post} theme={theme} user={user} />
       </View>
       <VideoDetailScreen post={post} />
       <VideoInteractionScreen

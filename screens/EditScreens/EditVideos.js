@@ -1,5 +1,7 @@
+/* eslint-disable no-shadow */
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-native/no-inline-styles */
-/* eslint-disable no-trailing-spaces */
+ 
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -16,18 +18,16 @@ import {
   Keyboard,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-// import Video from 'react-native-video';
 import firestore from '@react-native-firebase/firestore';
-import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RNModal from 'react-native-modal';
 import { Video as VideoCompressor } from 'react-native-compressor';
 import RNFS from 'react-native-fs'; // For file size checking
 import Video from 'react-native-video';
-import DarkMode from '../components/Theme/DarkMode';
-import { useUser } from '../data/Collections/FetchUserData';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import DarkMode from '../../components/Theme/DarkMode';
+import { useUser } from '../../data/Collections/FetchUserData';
 
 const EditVideos = () => {
   const theme = DarkMode();
@@ -174,11 +174,9 @@ const EditVideos = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-
   const handleSearch = async () => {
     try {
       setIsLoading(true);
-
       const results = [];
       const displayNameSnapshot = await firestore()
         .collection('profileUpdate')
