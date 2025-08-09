@@ -44,57 +44,38 @@ const handleFollow = async () => {
   const targetUserId = publicProfile?.uid;
   if (!currentUserId || !targetUserId) return;
 
-  const currentUserRef = firestore().collection('users').doc(currentUserId);
-  const targetUserRef = firestore().collection('users').doc(targetUserId);
-
-  const { displayName, lastName, profileImage } = getProfInfo || {};
-
   try {
-    const currentUserDoc = await currentUserRef.get();
-    const currentUserData = currentUserDoc.data();
-
     if (isFollowing) {
-      const updatedFollowing = (currentUserData.following || []).filter(
-        f => f !== targetUserId
-      );
+      // Unfollow
+      await firestore()
+        .collection('users')
+        .doc(currentUserId)
+        .update({
+          following: firestore.FieldValue.arrayRemove(targetUserId),
+        });
 
-      await currentUserRef.update({
-        following: updatedFollowing,
-      });
-
-      await targetUserRef.update({
-        followers: firestore.FieldValue.arrayRemove(currentUserId),
-      });
-
+      // Cloud Function will handle removing from followers[] of target
       setIsFollowing(false);
       Alert.alert('Unfollowed');
     } else {
-      await currentUserRef.update({
-        following: firestore.FieldValue.arrayUnion(targetUserId), // ✅ fixed
-      });
+      // Follow
+      await firestore()
+        .collection('users')
+        .doc(currentUserId)
+        .update({
+          following: firestore.FieldValue.arrayUnion(targetUserId),
+        });
 
-      await targetUserRef.update({
-        followers: firestore.FieldValue.arrayUnion(currentUserId),
-      });
-
+      // Cloud Function will handle adding to followers[] and creating notification
       setIsFollowing(true);
       Alert.alert('Followed');
-
-      await firestore().collection('notifications').add({
-        recipientId: targetUserId,
-        type: 'new_follower',
-        uid: currentUserId,
-        displayName: `${displayName} ${lastName}`,
-        profileImage,
-        timestamp: firestore.Timestamp.now(),
-        read: false,
-      });
     }
   } catch (error) {
     console.error('Error updating follow state:', error);
     setGetError('Follow/unfollow failed. Please try again.');
   }
 };
+
 
   useEffect(() => {
     if (

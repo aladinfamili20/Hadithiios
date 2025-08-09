@@ -1,4 +1,4 @@
-/* eslint-disable no-trailing-spaces */
+ 
 import React, { useState } from 'react';
 import {
   View,
@@ -34,6 +34,18 @@ const SignUpScreen = () => {
   };
 
   const handleSignUp = async () => {
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+  setGetError('Please enter a valid email.');
+  return;
+}
+
+if (password.length < 6) {
+  setGetError('Password must be at least 6 characters.');
+  return;
+}
+
+
     if (!email || !password || !confirmPassword) {
       setGetError('Error, please fill out all fields.');
       return;

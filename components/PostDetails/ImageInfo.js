@@ -164,7 +164,8 @@ const styles = theme =>
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
     },
     postContainer: {
-      margin: 10,
+     marginLeft: 10,
+     marginRight: 10
     },
 
     profileDetails: {

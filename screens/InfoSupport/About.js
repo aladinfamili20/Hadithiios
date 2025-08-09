@@ -82,7 +82,7 @@ const About = ({ AboutCloseModal }) => {
           <Text style={styles(theme).topLine} />
         </TouchableOpacity>
         {updateData && (
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image
               source={updateData.profileImage ? {uri: updateData.profileImage}   : require('../../assets/thumblogo.png')}
 
@@ -111,7 +111,7 @@ const About = ({ AboutCloseModal }) => {
 
           {/* <Text style={styles(theme).abouttexth3}>From ClearDesign</Text> */}
           <View style={{ marginTop: 20 }}>
-            <Text style={styles(theme).abouttexth3}>Version: 1.0.6</Text>
+            <Text style={styles(theme).abouttexth3}>Version: 2.0.0</Text>
             {/* <Text style={styles(theme).abouttexth3}>12.8.23</Text> */}
           </View>
         </View>
@@ -125,12 +125,13 @@ export default About;
 const styles = theme =>
   StyleSheet.create({
     container: {
-      flex: 1,
+      // flex: 1,
       justifyContent: 'flex-end',
       margin: 0,
+      marginBottom: 50
     },
     contents: {
-      backgroundColor: theme === 'dark' ? '#121212' : '#fff',
+      // backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       padding: 16,
       borderTopLeftRadius: 16,
       borderTopRightRadius: 16,
@@ -141,16 +142,7 @@ const styles = theme =>
       fontSize: 20,
       textAlign: 'center',
     },
-    topLine: {
-      borderTopWidth: 5,
-      width: 70,
-      height:7,
-      // borderColor: theme === 'dark' ? '#fff' : '#121212',
-      alignSelf: 'center',
-      borderRadius: 10,
-      marginBottom: 10,
-      backgroundColor: theme === 'dark' ? '#fff' : '#121212',
-    },
+    
     abouttexth2: {
       textAlign: 'center',
       fontSize: 30,
@@ -164,12 +156,12 @@ const styles = theme =>
       color: theme === 'dark' ? '#fff' : '#121212',
     },
     profImage: {
-      width: 70,
-      height: 70,
+      width: 30,
+      height: 30,
       borderRadius: 70,
     },
     displayName: {
-      fontSize: 28,
+      fontSize: 16,
       fontWeight: 'bold',
       color: theme === 'dark' ? '#fff' : '#121212',
       marginLeft: 10,
@@ -177,6 +169,7 @@ const styles = theme =>
     dateJoined: {
       color: theme === 'dark' ? '#fff' : '#121212',
       marginLeft: 10,
+      fontSize: 12
     },
     logo: {
       width: '40%',

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import Video from 'react-native-video';
 import { useRef } from 'react';
@@ -19,10 +19,9 @@ import { FieldValue } from '@react-native-firebase/firestore';
 import { auth, firestore } from '../../data/Firebase';
 
 const VideoDetailScreen = ({ post }) => {
-  // console.log(post);
   const theme = DarkMode();
   const navigation = useNavigation();
-  const [isPaused, setIsPaused] = useState(true); // Track whether video is
+  const [isPaused, setIsPaused] = useState(true); // Track whether video is playing or paused
   const togglePlayPause = () => {
     setIsPaused(prev => !prev);
   };

@@ -68,7 +68,7 @@ const ProfileHeaderInfo = () => {
             <Text style={themedStyles.username}>{userData.userName}</Text>
 
             {userData?.link ? (
-              <TouchableOpacity onPress={openUserLink}>
+              <TouchableOpacity onPress={()=>Linking.openURL(userData.link)}>
                 <Text style={themedStyles.link}>{userData.link}</Text>
               </TouchableOpacity>
             ) : null}

@@ -8,8 +8,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  FlatList,
-  Image,
+   Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -386,7 +385,7 @@ const ProfileScreen = () => {
             <TouchableOpacity
               style={styles(theme, imageSize).CaptionEditIconButton}
               onPress={() =>
-                navigation.navigate('editphoto', {
+                navigation.navigate('editthread', {
                   caption: item.caption,
                   id: item.id,
                   taggedUsers: item.taggedUser,

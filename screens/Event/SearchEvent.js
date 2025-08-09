@@ -19,6 +19,7 @@ import DarkMode from '../../components/Theme/DarkMode';
 import { auth } from '../../data/Firebase';
 import Divider from '../../components/Divider';
 import { useUser } from '../../data/Collections/FetchUserData';
+import { truncateString } from '../../components/TextShortner';
 
 const SearchEvent = () => {
   const theme = DarkMode();
@@ -152,7 +153,7 @@ const SearchEvent = () => {
           <View style={styles(theme).searchContentInfos}>
             <View style={styles(theme).searchContent}>
               <TextInput
-                placeholder="Search in Events"
+                placeholder="Search by users or events"
                 value={searchQuery}
                 onChangeText={text => setSearchQuery(text)}
                 // onSubmitEditing={handleSearch}
@@ -187,13 +188,13 @@ const SearchEvent = () => {
             <View style={styles(theme).eventDetails}>
               <Image source={{ uri: item.eventImage }} style={styles(theme).eventImage} />
               <View>
-                <Text style={styles(theme).eventTitle}>{item.eventName}</Text>
+                <Text style={styles(theme).eventTitle}>{truncateString(item.eventName, 30)}</Text>
                 <Text style={styles(theme).eventDate}>
                   {item.eventDate} at {item.eventTime}
                 </Text>
               </View>
             </View>
-            <Text style={styles(theme).eventDescription}>{item.eventDescription}</Text>
+            <Text style={styles(theme).eventDescription}>{truncateString(item.eventDescription, 300)}</Text>
             <Divider style={styles(theme).divider} />
             <View style={styles(theme).peopleJoined}>
               <View style={styles(theme).peopleContainer}>
@@ -345,20 +346,20 @@ const styles = theme => StyleSheet.create({
     marginBottom: 10,
   },
   eventImage: {
-    width: 60,
-    height: 60,
+    width: 40,
+    height: 40,
     borderRadius: 30,
     marginRight: 15,
   },
   eventTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
     color: theme === 'dark' ? '#fff' : '#121212',
 
   },
   eventDate: {
-    fontSize: 14,
+    fontSize: 12,
     color: theme === 'dark' ? '#bbb' : '#5b5b5b',
   },
   eventDescription: {
@@ -385,8 +386,8 @@ const styles = theme => StyleSheet.create({
     marginRight: 10,
   },
   userImage: {
-    width: 40,
-    height: 40,
+    width: 25,
+    height: 25,
     borderRadius: 20,
     marginLeft: -10, // Overlapping effect
     borderWidth: 2,

@@ -258,6 +258,7 @@ const styles = theme =>
       padding: 10,
       width: '100%',
       color: theme === 'dark' ? '#fff' : '#000',
+      borderRadius: 20
     },
     cancelButton: {
       padding: 7,

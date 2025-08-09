@@ -1,5 +1,7 @@
+/* eslint-disable no-catch-shadow */
+/* eslint-disable no-shadow */
 /* eslint-disable react-native/no-inline-styles */
- 
+
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -12,10 +14,12 @@ import {
   FlatList,
 } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
-import firestore  from '@react-native-firebase/firestore';
+import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import DarkMode from '../../components/Theme/DarkMode';
 import { useUser } from '../../data/Collections/FetchUserData';
+
+ 
 
 const FollowUsers = () => {
   const theme = DarkMode();
@@ -24,7 +28,8 @@ const FollowUsers = () => {
   const uid = user?.uid;
 
   const [loading, setLoading] = useState(true);
-  const [getError, setGetError] = useState('');
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [userList, setUserList] = useState([]);
   const [followingUserId, setFollowingUserId] = useState(null);
 
@@ -32,7 +37,7 @@ const FollowUsers = () => {
 
   const navigateToProfile = userId => {
     if (!userId) {
-      setGetError('User ID is undefined');
+      setError('User ID is undefined');
       return;
     }
 
@@ -44,96 +49,111 @@ const FollowUsers = () => {
     );
   };
 
-const followUser = async (currentUserId, targetUser) => {
-  const targetUserId = targetUser?.uid;
-  if (!currentUserId || !targetUserId) return;
-  setFollowingUserId(targetUserId);
+  const followUser = async (currentUserId, targetUser) => {
+    const targetUserId = targetUser?.uid;
+    if (!currentUserId || !targetUserId) return;
 
-  try {
-    const batch = firestore().batch();
-    const currentUserRef = firestore().collection('users').doc(currentUserId);
-    const targetUserRef = firestore().collection('users').doc(targetUserId);
+    setFollowingUserId(targetUserId);
+    setError('');
+    setSuccessMessage('');
 
-    const {
-      displayName = '',
-      lastName = '',
-      profileImage = '',
-    } = userData || {};
+    try {
+      const batch = firestore().batch();
+      const currentUserRef = firestore().collection('users').doc(currentUserId);
+      const targetUserRef = firestore().collection('users').doc(targetUserId);
 
-   batch.update(currentUserRef, {
-  following: firestore.FieldValue.arrayUnion(targetUserId
-  //   {
-  //   uid: targetUserId,
-  //   displayName: targetUser.displayName || '',
-  //   lastName: targetUser.lastName || '',
-  //   profileImage: targetUser.profileImage || '',
-  //   timestamp: firestore.Timestamp.now(),
-  // }
-),
-});
+      const {
+        displayName = '',
+        lastName = '',
+        profileImage = '',
+      } = userData || {};
 
-    batch.update(targetUserRef, {
-      followers: firestore.FieldValue.arrayUnion(currentUserId
-      //   {
-      //   uid: currentUserId,
-      //   displayName,
-      //   lastName,
-      //   profileImage,
-      //   timestamp: firestore.Timestamp.now(),
-      // }
-    ),
-    });
+      batch.update(currentUserRef, {
+        following: firestore.FieldValue.arrayUnion(targetUserId),
+      });
 
-    await batch.commit();
-    await firestore().collection('notifications').add({
+      batch.update(targetUserRef, {
+        followers: firestore.FieldValue.arrayUnion(currentUserId),
+      });
+
+      await batch.commit();
+ 
+// Before adding a new notification
+const existingNotification = await firestore()
+  .collection('notifications')
+  .where('recipientId', '==', targetUserId)
+  .where('type', '==', 'new_follower')
+  .where('uid', '==', currentUserId)
+  .limit(1)
+  .get();
+
+if (existingNotification.empty) {
+  await firestore()
+    .collection('notifications')
+    .add({
       recipientId: targetUserId,
       type: 'new_follower',
       uid: currentUserId,
-      displayName: `${displayName} ${lastName}`,
+      displayName: `${displayName} ${lastName}`.trim(),
       profileImage,
       timestamp: firestore.Timestamp.now(),
       read: false,
     });
+}
 
-    Alert.alert('Success', 'User followed successfully!');
-    setGetError('Followed! Relaunch the app to see new content.');
-    navigation.navigate('UserProfileScreen', { uid: targetUserId });
-  } catch (error) {
-    console.error('Error following user:', error);
-    Alert.alert('Error', 'Could not follow user.');
-    setGetError('Error following user.');
-  } finally {
-    setFollowingUserId(null);
-  }
-};
 
+
+
+
+
+      setSuccessMessage('User followed successfully!');
+
+      // Optimistic UI update: Update userList locally to reflect new following
+      setUserList(prevList =>
+        prevList.map(user =>
+          user.uid === targetUserId
+            ? { ...user, isFollowed: true }
+            : user,
+        ),
+      );
+
+      // Optionally navigate to profile after success
+      navigation.navigate('UserProfileScreen', { uid: targetUserId });
+    } catch (error) {
+      console.error('Error following user:', error);
+      Alert.alert('Error', 'Could not follow user.');
+      setError('Error following user.');
+    } finally {
+      setFollowingUserId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
+        setError('');
         const snapshot = await firestore()
           .collection('profileUpdate')
           .orderBy('updatedAt', 'desc')
           .limit(50)
           .get();
 
-        const users = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const users = snapshot.docs
+          .map(doc => ({ uid: doc.id, ...doc.data() }))
+          .filter(userDoc => userDoc.uid !== uid);
 
         setUserList(users);
       } catch (error) {
         console.error('Error fetching users:', error);
-        setGetError('Error fetching user list.');
+        setError('Error fetching user list.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
-  }, []);
+    if (uid) fetchUsers();
+  }, [uid]);
 
   const truncateString = (str, maxLength) =>
     typeof str === 'string' && str.length > maxLength
@@ -170,50 +190,74 @@ const followUser = async (currentUserId, targetUser) => {
       ) : (
         <FlatList
           data={userList}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.uid}
           renderItem={({ item }) => (
             <View style={themedStyles.NotificationContainer}>
-              {/* same follow user view */}
               <TouchableOpacity
                 onPress={() => navigateToProfile(item.uid)}
                 style={{ flexDirection: 'row', alignItems: 'center' }}
               >
                 <Image
-                  // source={{uri: item.profileImage || 'https://placehold.co/50'}}
                   source={
                     item.profileImage
                       ? { uri: item.profileImage }
                       : require('../../assets/thumblogo.png')
-                   }
+                  }
                   style={themedStyles.image}
                 />
-                <Text style={themedStyles.displayName}>
-                  {item.displayName || ''}{' '}
-                  {truncateString(item.lastName || '', 15)}
-                </Text>
+                <View>
+                  <Text style={themedStyles.displayName}>
+                    {item.displayName || ''}{' '}
+                    {truncateString(item.lastName || '', 15)}
+                  </Text>
+                  <Text style={themedStyles.userName}>
+                    {truncateString(item.userName || '', 15)}
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => followUser(uid, item)}
-                disabled={followingUserId === item.uid}
+                disabled={followingUserId === item.uid || item.isFollowed}
                 style={themedStyles.followbackBtn}
               >
                 <Text style={themedStyles.followbackText}>
-                  {followingUserId === item.uid ? 'Following...' : 'Follow'}
+                  {followingUserId === item.uid
+                    ? 'Following...'
+                    : item.isFollowed
+                    ? 'Followed'
+                    : 'Follow'}
                 </Text>
               </TouchableOpacity>
             </View>
           )}
         />
       )}
-      {!!getError && (
+
+      {!!error && (
         <View style={{ backgroundColor: '#fee', padding: 10, borderRadius: 5 }}>
-          <Text style={{ color: 'red' }}>{getError}</Text>
+          <Text style={{ color: 'red' }}>{error}</Text>
+        </View>
+      )}
+
+      {!!successMessage && (
+        <View
+          style={{
+            backgroundColor: '#efe',
+            padding: 10,
+            borderRadius: 5,
+            marginTop: 10,
+            alignItems: 'center',
+            textAlign: 'center'
+          }}
+        >
+          <Text style={{ color: 'green' }}>{successMessage}</Text>
         </View>
       )}
     </View>
   );
 };
+
 
 export default FollowUsers;
 
@@ -235,15 +279,19 @@ const styles = theme =>
       paddingBottom: 10,
     },
     image: {
-      width: 50,
-      height: 50,
+      width: 30,
+      height: 30,
       borderRadius: 25,
     },
     displayName: {
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: 'bold',
       color: theme === 'dark' ? '#fff' : '#121212',
       marginLeft: 10,
+    },
+    userName: {
+      marginLeft: 10,
+      fontSize: 10,
     },
     followbackBtn: {
       backgroundColor: '#FF4500',

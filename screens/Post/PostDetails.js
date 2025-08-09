@@ -79,45 +79,43 @@ const PostDetails = () => {
     fetchPostDetails();
   }, [id]);
 
-  const CommentsToFirebase = async () => {
-    if (!postDetails || !userData) {
-      console.error('Post details or user profile fetch is undefined');
-      setGetError('Error commenting, please try updating your profile informations.')
-      return;
-    }
-    if (!comment.trim()) return;
+const CommentsToFirebase = async () => {
+  if (!postDetails || !userData) {
+    console.error('Post details or user profile fetch is undefined');
+    setGetError('Error commenting, please try updating your profile informations.');
+    return;
+  }
 
-    try {
-      const {displayName, lastName, profileImage} = userData;
+  if (!comment.trim()) return;
 
-      const today = new Date();
-      const date = today.toDateString();
-      const Hours = today.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+  try {
+    const {displayName, lastName, profileImage} = userData;
+    const now = new Date();
 
-      await firestore()
-        .collection('posts')
-        .doc(postDetails.id)
-        .update({
-          comments: firestore.FieldValue.arrayUnion({
-            id: new Date().getTime().toString(),
-            uploadedDate: date,
-            HourPostes: Hours,
-            displayName,
-            profileImage,
-            lastName,
-            uid: user.uid,
-            comment,
-          }),
-        });
-      setComments('');
-      console.log('Comment added successfully!');
-    } catch (error) {
-      console.error('Error adding comment: ', error);
-    }
-  };
+    const commentDoc = {
+      uploadedDate: firestore.Timestamp.now(),
+      hourPosted: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      displayName,
+      profileImage,
+      lastName,
+      uid: user.uid,
+      comment,
+      likes: [],
+    };
+
+    await firestore()
+      .collection('posts')
+      .doc(postDetails.id)
+      .collection('comments')
+      .add(commentDoc);
+
+    setComments('');
+    console.log('Comment added successfully!');
+  } catch (error) {
+    console.error('Error adding comment: ', error);
+  }
+};
+
 
    
   return (

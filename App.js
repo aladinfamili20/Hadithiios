@@ -47,8 +47,12 @@ import SavedVideos from './screens/Interactions/SaveVideos';
 import EditPhoto from './screens/EditScreens/EditPhoto';
 import EditVideos from './screens/EditScreens/EditVideos';
 import ProfileSetup from './screens/EditScreens/ProfileSetup';
+import EditThread from './screens/EditScreens/EditThread';
 
 const Stack = createNativeStackNavigator();
+
+
+ 
 
 const App = () => {
   const [isReady, setIsReady] = useState(false);
@@ -128,13 +132,15 @@ useEffect(() => {
       <Stack.Screen name='postDetail' component={PostDetails} options={{headerShown: false}}/>
       <Stack.Screen name='PostCustomize' component={PostCustomize} options={{headerShown: false}}/>
       <Stack.Screen name='uploadimage' component={UploadImage} options={{headerShown: false}}/>
-      <Stack.Screen name='editphoto' component={EditPhoto} options={{headerShown: false}}/>
 
       {/* Video functionality */}
       <Stack.Screen name='VideoCustomize' component={VideoCustomize} options={{headerShown: false}}/>
       <Stack.Screen name='uploadvideo' component={UploadVideo} options={{headerShown: false}}/>
       <Stack.Screen name='videodetails' component={VideoDetails} options={{headerShown: false}}/>
+      {/* Edit and update screens */}
       <Stack.Screen name='editvideos' component={EditVideos} options={{headerShown: false}}/>
+      <Stack.Screen name='editphoto' component={EditPhoto} options={{headerShown: false}}/>
+      <Stack.Screen name='editthread' component={EditThread} options={{headerShown: false}}/>
 
       {/* Legal polices */}
       <Stack.Screen name='Privacy Policy' component={PrivacyPolicy} options={{headerShown: false}}/>

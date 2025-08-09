@@ -155,13 +155,13 @@ const VideoDetails = () => {
               {/* Posted video and caption*/}
               <VideoInfo />
               <VideoInteractionScreen post={postDetails} />
-              <VideoCommentSection />
+              {/* <VideoCommentSection /> */}
             </>
           )
         )}
 
         {/* Comment Input */}
-        <View style={styles(theme).commetnSection}>
+        {/* <View style={styles(theme).commetnSection}>
           <TextInput
             style={styles(theme).commentInput}
             placeholder="Add a comment"
@@ -177,7 +177,7 @@ const VideoDetails = () => {
           >
             <Ionicons name="send" size={24} color="#FF4500" />
           </TouchableOpacity>
-        </View>
+        </View> */}
       </ScrollView>
     </View>
   );
@@ -196,8 +196,8 @@ const styles = theme =>
       margin: 10,
     },
     profileImage: {
-      width: 50,
-      height: 50,
+      width: 30,
+      height: 30,
       borderRadius: 50,
     },
     profileContainer: {

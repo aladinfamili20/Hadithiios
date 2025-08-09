@@ -44,42 +44,46 @@ const LoginScreen = () => {
     return unsubscribe; // Cleanup listener on unmount
   }, [navigation]);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill out all fields.');
-      return;
+const handleLogin = async () => {
+  setLoginError(''); // Clear previous errors
+
+  if (!email || !password) {
+    Alert.alert('Error', 'Please fill out all fields.');
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    const userCredential = await auth().signInWithEmailAndPassword(email, password);
+    console.log('User logged in:', userCredential.user.uid); // Safer to log UID only
+
+    // Navigate after login success
+    navigation.replace('feed');
+
+  } catch (error) {
+    console.error(error);
+
+    let message = 'Something went wrong! Please check your email or password.';
+    if (error.code === 'auth/user-not-found') {
+      message = 'No user found with this email.';
+    } else if (error.code === 'auth/wrong-password') {
+      message = 'Incorrect password.';
+    } else if (error.code === 'auth/invalid-email') {
+      message = 'The email address is invalid.';
     }
 
-    try {
-      setIsLoading(true);
-      const userCredential = await auth().signInWithEmailAndPassword(
-        email,
-        password,
-      );
-      console.log('User logged in:', userCredential.user);
-      setLoginError('Logged in successfully!');
-      // navigation.replace('feed');
-    } catch (error) {
-      console.error(error);
-      Alert.alert(
-        'Something went wrong!' + 'please check your email or password.',
-      );
-      setLoginError('Error logging in, incorrent email or password');
-      // let message = 'Something went wrong!' + 'please check your email or password.';
-      let message =
-        'Something went wrong!' + 'please check your email or password.';
-      if (error.code === 'auth/user-not-found') {
-        message = 'No user found with this email.';
-      } else if (error.code === 'auth/wrong-password') {
-        message = 'Incorrect password.';
-      } else if (error.code === 'auth/invalid-email') {
-        message = 'The email address is invalid.';
-      }
-      // Alert.alert('Error', message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setLoginError(message);
+    Alert.alert('Error', message);
+
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+
+
   useEffect(() => {
     safeInitializeStorage();
   }, []);

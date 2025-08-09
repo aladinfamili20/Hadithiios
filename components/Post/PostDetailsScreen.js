@@ -102,10 +102,11 @@ const styles = theme =>
     taggedUsers: {
       color: theme === 'dark' ? '#fff' : '#0000FF',
       fontWeight: '500',
+      marginTop: 10
     },
     captionText: {
       color: theme === 'dark' ? '#fff' : '#121212',
-      //  marginTop: 5,
+       marginTop: 5,
     },
     CaptionModalContainer: {
       justifyContent: 'center',

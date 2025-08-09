@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {use, useCallback, useEffect, useState} from 'react';
+import React, { use, useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,18 +10,18 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { truncateString } from '../../components/TextShortner';
 import Divider from '../../components/Divider';
 import DarkMode from '../../components/Theme/DarkMode';
 import { auth, firestore } from '../../data/Firebase';
 import { useUser } from '../../data/Collections/FetchUserData';
- const BATCH_SIZE = 10; // Number of posts to fetch per batch
+const BATCH_SIZE = 10; // Number of posts to fetch per batch
 
 const Event = () => {
   const theme = DarkMode();
   const user = auth().currentUser;
-  const {userData} = useUser();
+  const { userData } = useUser();
   const uid = user?.uid;
   const navigation = useNavigation();
   const [postData, setPostData] = useState([]);
@@ -30,9 +30,9 @@ const Event = () => {
   const [lastVisible, setLastVisible] = useState(null);
   const [fetchingMore, setFetchingMore] = useState(false);
 
- useEffect(()=>{
-  setProfileData(userData)
- },[userData])
+  useEffect(() => {
+    setProfileData(userData);
+  }, [userData]);
 
   const fetchFollowedPosts = useCallback(
     async (isInitialLoad = false) => {
@@ -111,7 +111,7 @@ const Event = () => {
     });
 
     try {
-      const {displayName, lastName, profileImage} = profileData;
+      const { displayName, lastName, profileImage } = profileData;
       const postRef = firestore().collection('events').doc(eventId);
       await postRef.update({
         eventInterestedUsers: firestore.FieldValue.arrayUnion({
@@ -130,17 +130,20 @@ const Event = () => {
   };
 
   // rendering events
-  const renderEvent = ({item: event}) => (
+  const renderEvent = ({ item: event }) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate('eventdetails', {id: event.id})}
-      style={styles(theme).eventCard}>
+      onPress={() => navigation.navigate('eventdetails', { id: event.id })}
+      style={styles(theme).eventCard}
+    >
       <View style={styles(theme).eventDetails}>
         <Image
-          source={{uri: event.eventImage}}
+          source={{ uri: event.eventImage }}
           style={styles(theme).eventImage}
         />
         <View>
-          <Text style={styles(theme).eventTitle}>{truncateString(event.eventName,20)}</Text>
+          <Text style={styles(theme).eventTitle}>
+            {truncateString(event.eventName, 20)}
+          </Text>
           <Text style={styles(theme).eventDate}>
             {event.eventDate} at {event.eventTime}
           </Text>
@@ -176,17 +179,18 @@ const Event = () => {
               )}
             </>
           ) : (
-            <Text style={{color: theme === 'dark' ? '#fff' : '#5b5b5b'}}>
+            <Text style={{ color: theme === 'dark' ? '#fff' : '#5b5b5b' }}>
               No one has joined yet.{' '}
             </Text>
           )}
-          <Text style={{color: theme === 'dark' ? '#fff' : '#5b5b5b'}}>
+          <Text style={{ color: theme === 'dark' ? '#fff' : '#5b5b5b' }}>
             {event.eventInterestedUsers?.length || 0} Joined
           </Text>
         </View>
         <TouchableOpacity
           style={styles(theme).interestedButton}
-          onPress={() => handleInterestedClick(event.id)}>
+          onPress={() => handleInterestedClick(event.id)}
+        >
           <Ionicons name="star" size={15} color={'#ff6347'} />
           <Text style={styles(theme).interestedText}>Interested</Text>
         </TouchableOpacity>
@@ -198,7 +202,14 @@ const Event = () => {
     return (
       <View style={styles(theme).loadingContainer}>
         <ActivityIndicator size="large" color="#ff0330" />
-        <Text style={{color: theme === 'dark' ? '#fff' : '#121212', textAlign: 'center'}}>Loading events...</Text>
+        <Text
+          style={{
+            color: theme === 'dark' ? '#fff' : '#121212',
+            textAlign: 'center',
+          }}
+        >
+          Loading events...
+        </Text>
       </View>
     );
   }
@@ -219,7 +230,8 @@ const Event = () => {
 
           <View style={styles(theme).headerIcons}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Searchevents')}>
+              onPress={() => navigation.navigate('Searchevents')}
+            >
               <Ionicons
                 name="search-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -227,7 +239,8 @@ const Event = () => {
               />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Upload event')}>
+              onPress={() => navigation.navigate('Upload event')}
+            >
               <Ionicons
                 name="add-circle-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -235,7 +248,8 @@ const Event = () => {
               />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Your events')}>
+              onPress={() => navigation.navigate('Your events')}
+            >
               <Ionicons
                 name="calendar-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -248,9 +262,7 @@ const Event = () => {
 
         {postData.length === 0 ? (
           // eslint-disable-next-line react-native/no-inline-styles
-          <Text style={styles(theme).noJoined}>
-            No event(s) yet.
-          </Text>
+          <Text style={styles(theme).noJoined}>No event(s) yet.</Text>
         ) : (
           <FlatList
             data={postData}
@@ -304,7 +316,7 @@ const styles = theme =>
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       borderRadius: 10,
       shadowColor: theme === 'dark' ? '#fff' : '#121212',
-      shadowOffset: {width: 0, height: 2},
+      shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
       shadowRadius: 4,
       elevation: 5,
@@ -315,20 +327,19 @@ const styles = theme =>
       marginBottom: 10,
     },
     eventImage: {
-      width: 60,
-      height: 60,
+      width: 40,
+      height: 40,
       borderRadius: 30,
       marginRight: 15,
     },
     eventTitle: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: 'bold',
       color: theme === 'dark' ? '#fff' : '#121212',
-      marginBottom: 5,
-      width: '100%',
+       width: '100%',
     },
     eventDate: {
-      fontSize: 14,
+      fontSize: 12,
       color: theme === 'dark' ? '#fff' : '#121212',
     },
     eventDescription: {
@@ -355,8 +366,8 @@ const styles = theme =>
       marginRight: 10,
     },
     userImage: {
-      width: 40,
-      height: 40,
+      width: 25,
+      height: 25,
       borderRadius: 20,
       marginLeft: -10, // Overlapping effect
       borderWidth: 2,
@@ -371,7 +382,9 @@ const styles = theme =>
       flexDirection: 'row',
       alignItems: 'center',
       padding: 8,
-      backgroundColor: theme === 'dark' ? '#121212' : '#fff',
+      // backgroundColor: theme === 'dark' ? '#121212' : '#fff',
+          backgroundColor: '#ffefeb',
+
       borderRadius: 20,
       marginTop: 5,
       marginLeft: 5,
@@ -388,9 +401,9 @@ const styles = theme =>
       color: theme === 'dark' ? '#fff' : '#121212',
       textAlign: 'center',
     },
-    loadingContainer:{
-    flex:1,
-    justifyContent: 'center',
-    backgroundColor:  theme === 'dark' ? '#121212' : '#fff',
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      backgroundColor: theme === 'dark' ? '#121212' : '#fff',
     },
   });

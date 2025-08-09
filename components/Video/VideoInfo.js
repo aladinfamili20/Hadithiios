@@ -20,14 +20,13 @@ import { auth, firestore } from '../../data/Firebase';
 import UserCollectionFech from '../UserCollectionFech';
 import { truncateString } from '../TextShortner';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { doc, FieldValue } from '@react-native-firebase/firestore';
+import { FieldValue } from '@react-native-firebase/firestore';
 
 const VideoInfo = () => {
   const theme = DarkMode();
   const route = useRoute();
   const { id } = route.params;
   const user = auth().currentUser;
-  const uid = user?.uid;
   const navigation = useNavigation();
   const { document, loading } = UserCollectionFech('videos', id);
   const [postDetails, setPostDetails] = useState(null);
@@ -44,7 +43,6 @@ const VideoInfo = () => {
     height: 0,
   });
 
-
   useEffect(() => {
     const unsub = firestore()
       .collection('videos')
@@ -58,9 +56,6 @@ const VideoInfo = () => {
 
     return () => unsub();
   }, [postDetails?.id]);
-
-
-
 
   const aspectRatio =
     videoDimensions.width && videoDimensions.height
@@ -99,24 +94,20 @@ const VideoInfo = () => {
     setCaptionModal(false);
   };
 
- 
-const trackView = async () =>{
-  try{
+  const trackView = async () => {
+    try {
+      const userId = auth().currentUser;
+      const videoDocRef = firestore().collection('videos').doc(postDetails?.id);
 
-    const userId = auth().currentUser;
-    const videoDocRef = firestore().collection('videos').doc(postDetails?.id);
-
-    if(userId){
-      await videoDocRef.update({
+      if (userId) {
+        await videoDocRef.update({
           views: FieldValue.increment(1), // ✅
-      })
-    }
-
-  }catch (error){
+        });
+      }
+    } catch (error) {
       console.error('[trackView] Error incrementing views:', error);
-
-  }
-}
+    }
+  };
 
   const handleProgress = ({ currentTime }) => {
     if (!hasViewed && currentTime >= 1) {
@@ -124,7 +115,6 @@ const trackView = async () =>{
       trackView();
     }
   };
-
 
   const navigateToProfile = userId => {
     navigation.dispatch(
@@ -283,38 +273,21 @@ const styles = theme =>
       flex: 1,
       justifyContent: 'space-between',
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
-    },
-    postContainer: {
-      margin: 10,
-    },
-
+    },     
     profileDetails: {
-      marginLeft: 10,
-    },
-    caption: {
-      // marginTop: 10,
-      // marginBottom: 10,
-      color: theme === 'dark' ? '#fff' : '#121212',
-    },
+     },
+  
     taggedUsers: {
       color: theme === 'dark' ? '#fff' : '#0000FF',
-      lineHeight: 20,
-      // color: '#0000FF',
+      marginLeft: 10,
       fontWeight: '500',
       // backgroundColor: '#0000FF',
     },
     captionText: {
-      marginBottom: 10,
-      // marginTop:5,
-      color: theme === 'dark' ? '#fff' : '#121212',
+       color: theme === 'dark' ? '#fff' : '#121212',
+       marginLeft: 10
     },
-
-    image: {
-      width: '100%',
-      height: 300,
-      objectFit: 'contain',
-    },
-
+ 
     horizontal: {
       flexDirection: 'row',
       justifyContent: 'space-around',
@@ -325,7 +298,7 @@ const styles = theme =>
     CaptionModalContainer: {
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: 200,
+      marginTop: 300,
     },
     CaptionModalContent: {
       width: 320,

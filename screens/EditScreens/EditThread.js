@@ -7,12 +7,10 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  ScrollView,
-  FlatList,
+   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
-} from 'react-native';
+ } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import firestore from '@react-native-firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -23,7 +21,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { auth } from '../../data/Firebase';
 import { useUser } from '../../data/Collections/FetchUserData';
 import DarkMode from '../../components/Theme/DarkMode';
-const EditPhoto = () => {
+const EditThread = () => {
   const { image, id } = useRoute().params;
 
   const user = auth().currentUser;
@@ -215,7 +213,7 @@ const EditPhoto = () => {
                 size={24}
               />
             </TouchableOpacity>
-            <Text style={styles(theme).title}>Edit photo</Text>
+            <Text style={styles(theme).title}>Edit thread</Text>
           </View>
 
           <TextInput
@@ -227,8 +225,7 @@ const EditPhoto = () => {
             placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
             maxLength={250}
           />
-          <Image source={{ uri: image }} style={styles(theme).imagePreview} />
-
+ 
           {/* Tagging users */}
           <TouchableOpacity
             onPress={() => setIsTagModalVisible(true)}
@@ -355,9 +352,9 @@ const styles = theme => ({
     container: {
     flex: 1,
     // margin: 10,
-    backgroundColor: theme === 'dark' ? '#121212' : '#fff',
+    backgroundColor: theme === 'dark' ? '#121212' : '#f5f5f5',
   },
-  scrollViewContainer: {
+    scrollViewContainer: {
      backgroundColor: theme === 'dark' ? '#121212' : '#fff',
     margin: 10
   },
@@ -605,4 +602,4 @@ const styles = theme => ({
   },
 });
 
-export default EditPhoto;
+export default EditThread;

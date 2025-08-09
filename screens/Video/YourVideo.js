@@ -1,7 +1,6 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Modal, Appearance } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -14,8 +13,6 @@ const YourVideos = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [postIdToDelete, setPostIdToDelete] = useState(null);
   const [isPaused, setIsPaused] = useState(true);
-
-  const navigation = useNavigation();
 
   // Theme listener
   useEffect(() => {

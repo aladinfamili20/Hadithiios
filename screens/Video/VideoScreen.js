@@ -168,7 +168,7 @@ const VideoScreen = () => {
 
     <View>
       <VideoHandler post={item} />
-      {index > 0 && index % 6 === 0 && (
+      {index > 0 && index % 4 === 0 && (
         <View style={{marginVertical: 10, alignItems: 'center'}}>
           <BannerAd
             unitId={liveAdUnit}

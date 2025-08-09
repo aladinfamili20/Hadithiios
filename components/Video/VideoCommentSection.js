@@ -1,9 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import {
-  Dimensions,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
@@ -121,6 +119,9 @@ const VideoCommentSection = () => {
       }),
     );
   };
+
+
+  
   return (
     <KeyboardAwareScrollView
       style={styles(theme).commenterMainContainer}
@@ -252,7 +253,7 @@ export default VideoCommentSection;
 const styles = theme =>
   StyleSheet.create({
     commenterMainContainer: {
-      padding: 16,
+      // padding: 16,
     },
 
     commenterContainer: {

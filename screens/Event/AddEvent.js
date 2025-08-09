@@ -68,30 +68,7 @@ const AddEvent = () => {
       Alert.alert('Error picking background image:', error);
     }
   };
-
-  // send event image to firebase storage
-  //  const uploadImage = async () => {
-  //       if (!eventImage) {
-  //         Alert.alert('No Image Selected', 'Please select an image to upload.');
-  //         return null; // Stop the function if no image is selected
-  //       }
-
-  //       const filename = eventImage.substring(eventImage.lastIndexOf('/') + 1);
-  //       const storageRef = storage().ref(eventImage/${Date.now()}_${filename});
-
-  //       try {
-  //         const response = await fetch(eventImage);
-  //         const blob = await response.blob();
-  //         await storageRef.put(blob);
-  //         return await storageRef.getDownloadURL();
-  //       } catch (error) {
-  //         console.error('Error uploading image:', error);
-  //         Alert.alert('Upload Error', error.message || 'Failed to upload the image.');
-
-  //         return null;
-  //       }
-  //     };
-
+ 
   // Upload the post image
   const uploadImage = async () => {
     if (!eventImage) {
@@ -210,7 +187,7 @@ const AddEvent = () => {
 
   return (
     <View style={styles(theme).AddEventContainer}>
-      <ScrollView>
+      <ScrollView style={styles(theme).AddEventContents}>
         <View style={styles(theme).topHeader}>
           <View style={styles(theme).topHeaderIcons}>
             <TouchableOpacity onPress={() => navigation.navigate('event')}>
@@ -259,11 +236,13 @@ const AddEvent = () => {
             //   keyboardType="numaric"
           />
           <TextInput
-            placeholder="Event website"
+            placeholder="https://www.example.com"
             onChangeText={text => setEventWebsite(text)}
             value={eventWebsite}
             style={styles(theme).eventInput}
             placeholderTextColor="#888"
+            autoCapitalize="none"
+
           />
 
           <TextInput
@@ -320,6 +299,7 @@ const AddEvent = () => {
                 value={eventVirtualLink}
                 style={styles(theme).eventInput}
                 placeholderTextColor="#888"
+                autoCapitalize='none'
                 // multiline
               />
               <TouchableOpacity onPress={() => setOpenVirtualModal(false)}>
@@ -357,8 +337,8 @@ const AddEvent = () => {
             </View>
           </>
         ) : (
-          <TouchableOpacity onPress={handleUploadEvent}>
-            <Text style={styles(theme).submitButton}>Create event</Text>
+          <TouchableOpacity onPress={handleUploadEvent} style={styles(theme).submitButton}>
+            <Text style={styles(theme).submitButtonText}>Create event</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -374,9 +354,11 @@ const styles = theme =>
   StyleSheet.create({
     AddEventContainer: {
       flex: 1,
-      backgroundColor: theme === 'dark' ? '#121212' : '#eee',
-      padding: 10,
-    },
+      backgroundColor: theme === 'dark' ? '#121212' : '#ffff',
+     },
+     AddEventContents:{
+      margin: 10
+     },
     imageContainer: {
       position: 'relative',
       width: '100%',
@@ -391,7 +373,7 @@ const styles = theme =>
     topHeader: {
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       height: 50,
-    },
+     },
     topHeaderIcons: {
       // margin: 10,
       flexDirection: 'row',
@@ -418,8 +400,7 @@ const styles = theme =>
     },
     eventInputsContainer: {
       marginTop: 20,
-      paddingHorizontal: 10,
-    },
+     },
     eventInput: {
       borderWidth: 1,
       borderColor: '#ccc',
@@ -442,8 +423,9 @@ const styles = theme =>
     calendar: {
       marginTop: 20,
       alignSelf: 'center',
-      backgroundColor: theme === 'dark' ? '#121212' : '#eee',
-      color: theme === 'dark' ? '#fff' : '#121212',
+      backgroundColor: theme === 'dark' ? '#121212' : '#fff',
+      // color: theme === 'dark' ? '#fff' : '#121212',
+      color: '#fff'
     },
     label: {
       fontSize: 16,
@@ -475,12 +457,17 @@ const styles = theme =>
       width: 100,
     },
     submitButton: {
-      backgroundColor: '#FF4500',
+      backgroundColor: '#FF4500',       
+      marginTop: 20,
+      marginBottom: 40,
+      borderRadius: 10
+    },
+
+    submitButtonText:{
       color: '#fff',
       textAlign: 'center',
       fontWeight: 'bold',
-      padding: 10,
-      marginTop: 20,
+      padding: 15,
     },
     getError: {
       textAlign: 'center',

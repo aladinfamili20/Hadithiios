@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-native/no-inline-styles */
 import {
   Image,
@@ -9,7 +10,7 @@ import {
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { auth, firestore } from '../data/Firebase';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import DarkMode from './Theme/DarkMode';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import mobileAds, {
@@ -51,12 +52,11 @@ const HomeFeedHeader = () => {
     const notificationsQuery = query(
       notificationsRef,
       where('recipientId', '==', uid),
-      // where('postUserUid', '==', uid),
       where('read', '==', false),
     );
 
     const unsubscribe = onSnapshot(notificationsQuery, snapshot => {
-      // setUnreadNotifications(snapshot.size);
+      setUnreadNotifications(snapshot.size); // uncommented this line to update count
     });
 
     return () => unsubscribe();
@@ -65,55 +65,40 @@ const HomeFeedHeader = () => {
   useEffect(() => {
     mobileAds()
       .initialize()
-      .then(adapterStatuses => {
+      .then(() => {
         console.log('AdMob initialized');
       });
   }, []);
 
   return (
-    <View>
+      <View>
       <View style={{ marginTop: 10, alignItems: 'center' }}>
         <BannerAd
           unitId={liveAdUnit}
           size={BannerAdSize.ADAPTIVE_BANNER}
           requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         />
-
-        {/* <BannerAd
-          unitId={liveAdUnit}
-          size={BannerAdSize.ADAPTIVE_BANNER}
-          // size={BannerAdSize.BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-          onAdLoaded={() => {
-            console.log('Ad loaded');
-          }}
-          onAdFailedToLoad={error => {
-            console.error('Ad failed to load: ', error);
-          }}
-        /> */}
       </View>
+
       <View style={styles(theme).homeHeader}>
         <Image
           source={require('../assets/hadthilogo.png')}
           style={styles(theme).logo}
         />
         <View style={styles(theme).topRight}>
-          {/* <TouchableOpacity onPress={() => navigation.navigate('event')}>
+          <TouchableOpacity onPress={() => navigation.navigate('event')}>
             <Ionicons
               name="calendar-outline"
               size={25}
               color={theme === 'dark' ? '#fff' : '#121212'}
             />
-          </TouchableOpacity> */}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={{ marginRight: 10 }}
             onPress={async () => {
               try {
-                // Update unread notifications to read
-                const notificationsRef =
-                  firestore().collection('notifications');
+                const notificationsRef = firestore().collection('notifications');
                 const snapshot = await notificationsRef
                   .where('recipientId', '==', uid)
                   .where('read', '==', false)
@@ -125,10 +110,8 @@ const HomeFeedHeader = () => {
                 });
                 await batch.commit();
 
-                // Reset local counter
                 setUnreadNotifications(0);
 
-                // Navigate to Notifications screen
                 navigation.navigate('Notifications');
               } catch (error) {
                 console.error('Error marking notifications as read:', error);

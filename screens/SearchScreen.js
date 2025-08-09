@@ -8,16 +8,19 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  // Image,
+  Image,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Divider from '../components/Divider';
 import DarkMode from '../components/Theme/DarkMode';
-import Image from 'react-native-image-progress';
+// import Image from 'react-native-image-progress';
+import { useUser } from '../data/Collections/FetchUserData';
+import { auth } from '../data/Firebase';
 // import ProgressBar from 'react-native-progress/Bar';
 
 const PAGE_SIZE = 15;
@@ -25,6 +28,9 @@ const PAGE_SIZE = 15;
 const SearchScreen = () => {
   const theme = DarkMode();
   const [loading, setIsLoading] = useState(false);
+  const { userData } = useUser();
+  const user = auth().currentUser;
+  const uid = user.uid;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [postData, setPostData] = useState([]);
@@ -33,8 +39,16 @@ const SearchScreen = () => {
   const [fetchingMore, setFetchingMore] = useState(false);
   const [lastPostDoc, setLastPostDoc] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-
+  const [followingUserId, setFollowingUserId] = useState(null);
+  const [getCurrentUser, setGetCurrentUser] = useState(null);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const navigation = useNavigation();
+  const [userList, setUserList] = useState([]);
+
+  useEffect(() => {
+    setGetCurrentUser(userData);
+  }, [userData]);
 
   const navigateToProfile = userId => {
     navigation.dispatch(
@@ -43,6 +57,79 @@ const SearchScreen = () => {
         params: { uid: userId },
       }),
     );
+  };
+
+  // Follow user
+  const followUser = async (currentUserId, targetUser) => {
+    const targetUserId = targetUser?.uid;
+    if (!currentUserId || !targetUserId) return;
+
+    setFollowingUserId(targetUserId);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const batch = firestore().batch();
+      const currentUserRef = firestore().collection('users').doc(currentUserId);
+      const targetUserRef = firestore().collection('users').doc(targetUserId);
+
+      const {
+        displayName = '',
+        lastName = '',
+        profileImage = '',
+      } = getCurrentUser || {};
+
+      batch.update(currentUserRef, {
+        following: firestore.FieldValue.arrayUnion(targetUserId),
+      });
+
+      batch.update(targetUserRef, {
+        followers: firestore.FieldValue.arrayUnion(currentUserId),
+      });
+
+      await batch.commit();
+
+      // Before adding a new notification
+      const existingNotification = await firestore()
+        .collection('notifications')
+        .where('recipientId', '==', targetUserId)
+        .where('type', '==', 'new_follower')
+        .where('uid', '==', currentUserId)
+        .limit(1)
+        .get();
+
+      if (existingNotification.empty) {
+        await firestore()
+          .collection('notifications')
+          .add({
+            recipientId: targetUserId,
+            type: 'new_follower',
+            uid: currentUserId,
+            displayName: `${displayName} ${lastName}`.trim(),
+            profileImage,
+            timestamp: firestore.Timestamp.now(),
+            read: false,
+          });
+      }
+
+      setSuccessMessage('User followed successfully!');
+
+      // Optimistic UI update: Update userList locally to reflect new following
+      setUserList(prevList =>
+        prevList.map(user =>
+          user.uid === targetUserId ? { ...user, isFollowed: true } : user,
+        ),
+      );
+
+      // Optionally navigate to profile after success
+      navigation.navigate('UserProfileScreen', { uid: targetUserId });
+    } catch (error) {
+      console.error('Error following user:', error);
+      Alert.alert('Error', 'Could not follow user.');
+      setError('Error following user.');
+    } finally {
+      setFollowingUserId(null);
+    }
   };
 
   const handleSearch = async () => {
@@ -65,11 +152,25 @@ const SearchScreen = () => {
         .where('lastName', '<=', searchQuery + '\uf8ff')
         .get();
 
+        const userNameSnapshot = await firestore()
+        .collection('profileUpdate')
+        .where('userName', '>=', searchQuery)
+        .where('userName', '<=', searchQuery + '\uf8ff')
+        .get();
+
       displayNameSnapshot.forEach(doc => {
         results.push({ id: doc.id, ...doc.data() });
       });
 
       lastNameSnapshot.forEach(doc => {
+        const user = { id: doc.id, ...doc.data() };
+        if (!results.find(u => u.id === user.id)) {
+          results.push(user);
+        }
+      });
+
+
+      userNameSnapshot.forEach(doc => {
         const user = { id: doc.id, ...doc.data() };
         if (!results.find(u => u.id === user.id)) {
           results.push(user);
@@ -144,8 +245,8 @@ const SearchScreen = () => {
       <View style={styles(theme).imageContainer}>
         <TouchableOpacity
           onPress={() => navigation.navigate('postDetail', { id: item.id })}
-           accessible={true}
-        accessibilityLabel="Open post details"
+          accessible={true}
+          accessibilityLabel="Open post details"
         >
           <Image
             source={{ uri: item.image }}
@@ -159,8 +260,6 @@ const SearchScreen = () => {
       </View>
     );
   };
-
- 
 
   return (
     <View style={styles(theme).searchContainer}>
@@ -182,6 +281,7 @@ const SearchScreen = () => {
                 onChangeText={text => setSearchQuery(text)}
                 style={styles(theme).searchBar}
                 placeholderTextColor="#888"
+                autoCapitalize='none'
               />
               <TouchableOpacity onPress={handleSearch}>
                 <Ionicons
@@ -203,7 +303,6 @@ const SearchScreen = () => {
         <FlatList
           // data={postData}
           data={postData.filter(post => !!post.image)}
-
           initialNumToRender={9}
           maxToRenderPerBatch={15}
           windowSize={10}
@@ -251,14 +350,29 @@ const SearchScreen = () => {
                     // style={styles(theme).profileImage}
                     style={{ width: 35, height: 35, borderRadius: 20 }}
                   />
-                </View>
                 <View style={styles(theme).textContainer}>
                   <Text style={styles(theme).displayName}>
                     {item.displayName} {item.lastName}
                   </Text>
                   <Text style={styles(theme).username}>@{item.userName}</Text>
                 </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => followUser(uid, item)}
+                  disabled={followingUserId === item.uid || item.isFollowed}
+                  style={styles(theme).followbackBtn}
+                >
+                  <Text style={styles(theme).followbackText}>
+                    {followingUserId === item.uid
+                      ? 'Following...'
+                      : item.isFollowed
+                      ? 'Followed'
+                      : 'Follow'}
+                  </Text>
+                </TouchableOpacity>
               </View>
+              <Text style={{ color: 'green', textAlign: 'center' }}>{successMessage}</Text>
               <Divider />
             </TouchableOpacity>
           )}
@@ -319,15 +433,15 @@ const styles = theme =>
     },
     searchInfo: {
       flexDirection: 'row',
-      // alignItems: 'center',
-
+      alignItems: 'center',
+      justifyContent: 'space-between'
     },
     SearchPhotoContainer: {
       // width: '100%',
       // padding: 5,
       marginBottom: 10,
-      borderRadius: 20,
-      overflow: 'hidden',
+       overflow: 'hidden',
+      flexDirection: 'row'
     },
     // profileImage: {
     //   width: 30,
@@ -383,4 +497,16 @@ const styles = theme =>
     //   height: 130,    // Adjust the height of the image as needed
     //   borderRadius: 10,  // Optional: give rounded corners to the images
     // },
+
+    followbackBtn: {
+      backgroundColor: '#FF4500',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 5,
+    },
+    followbackText: {
+      color: '#fff',
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
   });

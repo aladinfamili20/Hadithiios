@@ -10,17 +10,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Divider from '../../components/Divider';
 import { truncateString } from '../../components/TextShortner';
 import { auth, firestore } from '../../data/Firebase';
- const YourEvents = () => {
+const YourEvents = () => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());
 
   useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
       setTheme(colorScheme);
     });
 
@@ -86,18 +86,21 @@ import { auth, firestore } from '../../data/Firebase';
     setPostIdToDelete(null);
   };
 
-  const renderEvent = ({item: event}) => (
+  const renderEvent = ({ item: event }) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate('eventdetails', {id: event.id})}
-      style={styles(theme).eventCard}>
+      onPress={() => navigation.navigate('eventdetails', { id: event.id })}
+      style={styles(theme).eventCard}
+    >
       <View style={styles(theme).eventDetails}>
-        <View style={{flexDirection: 'row'}}>
+        <View style={{ flexDirection: 'row' }}>
           <Image
-            source={{uri: event.eventImage}}
+            source={{ uri: event.eventImage }}
             style={styles(theme).eventImage}
           />
           <View>
-            <Text style={styles(theme).eventTitle}>{truncateString(event.eventName,23)}</Text>
+            <Text style={styles(theme).eventTitle}>
+              {truncateString(event.eventName, 23)}
+            </Text>
             <Text style={styles(theme).eventDate}>
               {event.eventDate} at {event.eventTime}
             </Text>
@@ -125,10 +128,11 @@ import { auth, firestore } from '../../data/Firebase';
                   .map((userInfo, index) => (
                     <Image
                       key={index}
-                     
-
-                  source={userInfo.profileImage ? {uri: userInfo.profileImage}   : require('../../assets/thumblogo.png')}
-
+                      source={
+                        userInfo.profileImage
+                          ? { uri: userInfo.profileImage }
+                          : require('../../assets/thumblogo.png')
+                      }
                       style={styles(theme).userImage}
                     />
                   ))}
@@ -142,7 +146,7 @@ import { auth, firestore } from '../../data/Firebase';
           ) : (
             <Text>No one has joined yet.</Text>
           )}
-          <Text style={{color: theme === 'dark' ? '#fff' : '#121212'}}>
+          <Text style={{ color: theme === 'dark' ? '#fff' : '#121212' }}>
             {event.eventInterestedUsers?.length || 0} Joined
           </Text>
         </View>
@@ -161,33 +165,38 @@ import { auth, firestore } from '../../data/Firebase';
         animationType="slide"
         transparent={true}
         visible={deleteModalVisible}
-        onRequestClose={closeDeleteModal}>
+        onRequestClose={closeDeleteModal}
+      >
         <View style={styles(theme).modalContainer}>
           <View style={styles(theme).modalContent}>
-            <Text style={{color: theme === 'dark' ? '#fff' : '#000'}}>
+            <Text style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
               Are you sure you want to delete this event?
             </Text>
             <View style={styles(theme).modalButtons}>
               <TouchableOpacity
                 style={styles(theme).modalButton}
-                onPress={closeDeleteModal}>
+                onPress={closeDeleteModal}
+              >
                 <Text
                   style={{
                     color: theme === 'dark' ? '#fff' : '#5b5b5b',
                     textAlign: 'center',
-                  }}>
+                  }}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles(theme).modalButtonRed}
-                onPress={() => deletePost(postIdToDelete)}>
+                onPress={() => deletePost(postIdToDelete)}
+              >
                 <Text
                   style={{
                     color: '#fff',
                     fontWeight: 'bold',
                     textAlign: 'center',
-                  }}>
+                  }}
+                >
                   Delete
                 </Text>
               </TouchableOpacity>
@@ -259,7 +268,7 @@ const styles = theme =>
       backgroundColor: theme === 'dark' ? '#121212' : '#fff',
       borderRadius: 10,
       shadowColor: theme === 'dark' ? '#fff' : '#121212',
-      shadowOffset: {width: 0, height: 2},
+      shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
       shadowRadius: 4,
       elevation: 5,
@@ -271,20 +280,20 @@ const styles = theme =>
       justifyContent: 'space-between',
     },
     eventImage: {
-      width: 60,
-      height: 60,
+      width: 40,
+      height: 40,
       borderRadius: 30,
       marginRight: 15,
     },
     eventTitle: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: 'bold',
       color: theme === 'dark' ? '#fff' : '#121212',
       // width: '50%',
       // marginBottom: 5,
     },
     eventDate: {
-      fontSize: 14,
+      fontSize: 12,
       color: theme === 'dark' ? '#fff' : '#121212',
     },
     eventDescription: {

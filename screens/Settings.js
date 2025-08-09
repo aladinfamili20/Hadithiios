@@ -1,7 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-shadow */
 /* eslint-disable no-dupe-keys */
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,22 +10,25 @@ import {
   Modal,
   ScrollView,
   StatusBar,
- } from 'react-native';
+  SectionList,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import About from './InfoSupport/About';
-import {firebase} from '@react-native-firebase/app';
+import { firebase } from '@react-native-firebase/app';
 import '@react-native-firebase/auth';
 import '@react-native-firebase/firestore';
-import {auth} from '../data/Firebase';
+import { auth } from '../data/Firebase';
 import DarkMode from '../components/Theme/DarkMode';
- 
+import RNModal from 'react-native-modal';
+
 const Settings = () => {
- const theme = DarkMode();
+  const theme = DarkMode();
   const user = auth().currentUser;
   const navigation = useNavigation();
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
+  const [reportModal, setReportModal] = useState(false);
 
   const AboutOpenModule = () => {
     setAboutModalVisible(true);
@@ -65,12 +68,13 @@ const Settings = () => {
             <Text style={styles(theme).uploadTopText}>Settings</Text>
           </View>
         </View>
-        <View style={{padding: 16}}>
+        <View style={{ padding: 16 }}>
           <View style={styles(theme).settingsAttributes}>
             <Text style={styles(theme).text}>Interactions</Text>
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('savedposts')}>
+              onPress={() => navigation.navigate('savedposts')}
+            >
               <Ionicons
                 name="image-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -81,7 +85,8 @@ const Settings = () => {
             {/* Saved videos */}
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('savedvideos')}>
+              onPress={() => navigation.navigate('savedvideos')}
+            >
               <Ionicons
                 name="play-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -92,7 +97,8 @@ const Settings = () => {
             {/* Licked posts */}
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('lickedposts')}>
+              onPress={() => navigation.navigate('lickedposts')}
+            >
               <Ionicons
                 name="image-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -103,7 +109,8 @@ const Settings = () => {
             {/* Licked videos */}
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('lickedvideos')}>
+              onPress={() => navigation.navigate('lickedvideos')}
+            >
               <Ionicons
                 name="play-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -114,7 +121,8 @@ const Settings = () => {
             <Text style={styles(theme).text}>Access</Text>
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('manageblockedusers')}>
+              onPress={() => navigation.navigate('manageblockedusers')}
+            >
               <Ionicons
                 name="ban-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -127,7 +135,8 @@ const Settings = () => {
             <Text style={styles(theme).text}>Legal Policies</Text>
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('Terms of Service')}>
+              onPress={() => navigation.navigate('Terms of Service')}
+            >
               <Entypo
                 name="book"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -139,7 +148,8 @@ const Settings = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('Privacy Policy')}>
+              onPress={() => navigation.navigate('Privacy Policy')}
+            >
               <Ionicons
                 name="shield-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -151,7 +161,8 @@ const Settings = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('Community Guidelines')}>
+              onPress={() => navigation.navigate('Community Guidelines')}
+            >
               <Ionicons
                 name="people-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -164,7 +175,8 @@ const Settings = () => {
             <Text style={styles(theme).text}>Info & Support</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('Help')}
-              style={styles(theme).settingsButtons}>
+              style={styles(theme).settingsButtons}
+            >
               <Ionicons
                 name="help-buoy-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -174,25 +186,97 @@ const Settings = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={AboutOpenModule}>
+              // onPress={AboutOpenModule}
+              onPress={() => setReportModal(true)}
+            >
               <Ionicons
                 name="information-circle-outline"
                 color={theme === 'dark' ? '#fff' : '#121212'}
                 size={24}
               />
               <Text style={styles(theme).settingsLinksText}>About</Text>
-              <Modal
-                animationType="slide"
-                transparent={true}
-                visible={aboutModalVisible}
-                onRequestClose={AboutCloseModal}>
-                <About AboutCloseModal={AboutCloseModal} />
-              </Modal>
+
+              <RNModal
+                isVisible={reportModal}
+                onBackdropPress={() => setReportModal(false)}
+                style={styles(theme).modal}
+              >
+                <View style={styles(theme).modalContent}>
+                  <Text style={styles(theme).modalTitle}>About your account</Text>
+                  {/* <Text style={styles(theme).modalTitleH2}>
+                    Why are you reporting this post?
+                  </Text> */}
+
+                  <ScrollView>
+                    <RNModal
+                      isVisible={reportModal}
+                      onBackdropPress={() => setReportModal(false)}
+                      style={{
+                        justifyContent: 'flex-end',
+                        margin: 0,
+                      }}
+                      swipeDirection="down"
+                      onSwipeComplete={() => setReportModal(false)}
+                      propagateSwipe
+                    >
+                      <View
+                        style={{
+                          backgroundColor:
+                            theme === 'light' ? '#fff' : '#1c1c1c',
+                          borderTopLeftRadius: 20,
+                          borderTopRightRadius: 20,
+                          paddingTop: 10,
+                          maxHeight: '100%',
+                        }}
+                      >
+                        {/* Drag handle */}
+                        <View
+                          style={{
+                            width: 40,
+                            height: 5,
+                            borderRadius: 3,
+                            backgroundColor:
+                              theme === 'light' ? '#ccc' : '#555',
+                            alignSelf: 'center',
+                            marginBottom: 10,
+                          }}
+                        />
+
+                        {/* Header */}
+                        <Text
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 'bold',
+                            color: theme === 'light' ? '#000' : '#fff',
+                            textAlign: 'center',
+                            marginBottom: 5,
+                          }}
+                        >
+                          About yout account
+                        </Text>
+                        {/* <Text
+                          style={{
+                            fontSize: 14,
+                            color: theme === 'light' ? '#555' : '#bbb',
+                            textAlign: 'center',
+                            marginBottom: 15,
+                          }}
+                        >
+                          Why are you reporting this post?
+                        </Text> */}
+
+                        <About />
+                      </View>
+                    </RNModal>
+                  </ScrollView>
+                </View>
+              </RNModal>
             </TouchableOpacity>
             <Text style={styles(theme).text}>Account</Text>
             <TouchableOpacity
               style={styles(theme).settingsButtons}
-              onPress={() => navigation.navigate('signup')}>
+              onPress={() => navigation.navigate('signup')}
+            >
               <Ionicons
                 name="add"
                 color={theme === 'dark' ? '#fff' : '#121212'}
@@ -205,13 +289,15 @@ const Settings = () => {
             <View>
               <TouchableOpacity
                 style={[styles(theme).settingsButtons, styles(theme).loggout]}
-                onPress={() => navigation.navigate('DeleteAccount')}>
+                onPress={() => navigation.navigate('DeleteAccount')}
+              >
                 <Ionicons name="trash-outline" color={'white'} size={24} />
                 <Text
                   style={[
                     styles(theme).settingsLinksText,
                     styles(theme).loggoutText,
-                  ]}>
+                  ]}
+                >
                   Delete account
                 </Text>
               </TouchableOpacity>
@@ -220,13 +306,15 @@ const Settings = () => {
             <View>
               <TouchableOpacity
                 style={[styles(theme).settingsButtons, styles(theme).loggout]}
-                onPress={loggOff}>
+                onPress={loggOff}
+              >
                 <Ionicons name="log-out-outline" color={'white'} size={24} />
                 <Text
                   style={[
                     styles(theme).settingsLinksText,
                     styles(theme).loggoutText,
-                  ]}>
+                  ]}
+                >
                   Log out as: {user.email}
                 </Text>
               </TouchableOpacity>

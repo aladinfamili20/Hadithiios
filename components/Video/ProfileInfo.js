@@ -2,8 +2,7 @@ import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import React, {useEffect, useState} from 'react';
 import DarkMode from '../Theme/DarkMode';
 import {CommonActions, useNavigation, useRoute} from '@react-navigation/native';
-import {auth} from '../../data/Firebase';
- import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import UserCollectionFech from '../UserCollectionFech';
 
 
@@ -11,10 +10,8 @@ const ProfileInfo = () => {
     const theme = DarkMode();
     const route = useRoute();
     const {id} = route.params;
-    const user = auth().currentUser;
-    const uid = user?.uid;
-    const navigation = useNavigation();
-    const {document, loading} = UserCollectionFech('videos', id);
+      const navigation = useNavigation();
+    const {document} = UserCollectionFech('videos', id);
     const [postDetails, setPostDetails] = useState(null);
 
     useEffect(() => {
@@ -78,8 +75,8 @@ const styles = theme =>
     StyleSheet.create({
 
       profileImage: {
-        width: 50,
-        height: 50,
+        width: 30,
+        height: 30,
         borderRadius: 50,
       },
       profileContainer: {
@@ -110,10 +107,11 @@ const styles = theme =>
         // marginTop: 15,
        },
       timetemp: {
-        fontSize: 12,
+        fontSize: 10,
       },
       displayName: {
         fontWeight: 'bold',
         color: theme === 'dark' ? '#fff' : '#121212',
+        fontSize: 14
       },
     });

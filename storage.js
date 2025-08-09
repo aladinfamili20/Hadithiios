@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_VERSION = '1.0.6';
+const STORAGE_VERSION = '2.0.0';
 
 export const safeInitializeStorage = async () => {
   try {

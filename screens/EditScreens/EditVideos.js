@@ -1,7 +1,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-native/no-inline-styles */
- 
+
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -244,115 +244,99 @@ const EditVideos = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <KeyboardAwareScrollView
-        onPress={Keyboard.dismiss}
         contentContainerStyle={styles(theme).scrollViewContainer}
         keyboardShouldPersistTaps="handled"
-        enableOnAndroid={true}
+        enableOnAndroid
         extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
         showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
       >
         <View style={styles(theme).container}>
-          <ScrollView contentContainerStyle={styles(theme).scrollViewContainer}>
-            <View style={styles(theme).header}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Ionicons
-                  name="chevron-back-outline"
-                  color={theme === 'dark' ? '#fff' : '#121212'}
-                  size={25}
-                />
-              </TouchableOpacity>
-              <Text style={styles(theme).title}>Upload Photo</Text>
-            </View>
-
-            {loadingCompression ? (
-              <>
-                <Text style={styles(theme).compressionTitle}>
-                  Laoding compression version, Please wait.
-                </Text>
-              </>
-            ) : (
-              <>
-                {compressedVideoUri && (
-                  <Video
-                    source={{ uri: compressedVideoUri }}
-                    resizeMode="cover"
-                    paused={!isPlaying}
-                    repeat={false}
-                    style={styles(theme).video}
-                  />
-                )}
-              </>
-            )}
-
-            {/* {videoSizeMB && (
-          <Text style={{textAlign: 'center', marginTop: 4, color: 'gray'}}>
-            Compressed Size: {videoSizeMB} MB
-          </Text>
-        )} */}
-
-            {/* Caption Input */}
-            <TextInput
-              placeholder="Write a caption..."
-              style={styles(theme).captionInput}
-              value={caption}
-              onChangeText={setCaption}
-              multiline
-              placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
-            />
-
-            {/* Open Modal for Tagging */}
-            <TouchableOpacity
-              onPress={() => setIsTagModalVisible(true)}
-              style={styles(theme).openTagModalButton}
-            >
-              <Text style={styles(theme).openTagModalText}>Tag Users</Text>
+          <View style={styles(theme).header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons
+                name="chevron-back-outline"
+                color={theme === 'dark' ? '#fff' : '#121212'}
+                size={24}
+              />
             </TouchableOpacity>
+            <Text style={styles(theme).title}>Edit video</Text>
+          </View>
 
-            {/* Display Tagged Users */}
-            <View style={styles(theme).taggedUsersContainer}>
-              {taggedUsers.map((user, index) => (
-                <View key={index} style={styles(theme).taggedUser}>
+          <TextInput
+            style={styles(theme).input}
+            placeholder="Write a caption..."
+            value={caption}
+            onChangeText={setCaption}
+            multiline
+            placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
+            maxLength={250}
+          />
+
+ 
+ {loadingCompression ? (
+            <>
+              <Text style={styles(theme).compressionTitle}>
+                Laoding compression version, Please wait.
+              </Text>
+            </>
+          ) : (
+            <>
+              {compressedVideoUri && (
+                <Video
+                  source={{ uri: compressedVideoUri }}
+                  resizeMode="cover"
+                  paused={!isPlaying}
+                  repeat={false}
+                  style={styles(theme).video}
+                />
+              )}
+            </>
+          )}
+   
+
+          {/* Tagging users */}
+          <TouchableOpacity
+            onPress={() => setIsTagModalVisible(true)}
+            style={styles(theme).openTagModalButton}
+          >
+            <Text style={styles(theme).openTagModalText}>Tag Users</Text>
+          </TouchableOpacity>
+
+          <View style={styles(theme).taggedUsersContainer}>
+            {taggedUsers.map((user, index) => (
+              <View key={index} style={styles(theme).taggedUser}>
+                <View style={styles(theme).taggedDisplayInfo}>
+                  <Image
+                    source={{ uri: user.profileImage }}
+                    style={styles(theme).TaggedProfileImage}
+                  />
                   <Text style={styles(theme).taggedUserName}>
                     {user.displayName} {user.lastName}
                   </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      setTaggedUsers(taggedUsers.filter(u => u.id !== user.id))
-                    }
-                  >
-                    <Text style={styles(theme).removeTagButton}>Remove</Text>
-                  </TouchableOpacity>
                 </View>
-              ))}
-            </View>
-
-            {/* Submit Button */}
-            {isLoading ? (
-              <ActivityIndicator
-                size="large"
-                color="tomato"
-                style={{ marginTop: 16 }}
-              />
-            ) : (
-              <>
                 <TouchableOpacity
-                  onPress={updatePost}
-                  style={styles(theme).createPostButton}
+                  onPress={() =>
+                    setTaggedUsers(taggedUsers.filter(u => u.id !== user.id))
+                  }
                 >
-                  <Text style={styles(theme).createPostButtonText}>Update</Text>
+                  <Text style={styles(theme).removeTagButton}>Remove</Text>
                 </TouchableOpacity>
-              </>
-            )}
-          </ScrollView>
+              </View>
+            ))}
+          </View>
 
-          {/* Tag Users Modal */}
+          {/* Modal for tagging users */}
+
           <RNModal
             isVisible={isTagModalVisible}
             onBackdropPress={() => setIsTagModalVisible(false)}
             style={styles(theme).modal}
           >
-            <View style={styles(theme).modalContent}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+              style={styles(theme).modalContent}
+            >
               <Text style={styles(theme).modalTitle}>Tag Users</Text>
 
               <View style={styles(theme).searchContent}>
@@ -360,7 +344,6 @@ const EditVideos = () => {
                   placeholder="Search users..."
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  // onSubmitEditing={handleSearch}
                   style={styles(theme).searchBar}
                   placeholderTextColor={theme === 'light' ? '#888' : '#ccc'}
                 />
@@ -399,7 +382,6 @@ const EditVideos = () => {
                 )}
                 style={{ marginTop: 10 }}
               />
-              <Text style={styles(theme).getError}>{getError}</Text>
 
               <TouchableOpacity
                 onPress={() => setIsTagModalVisible(false)}
@@ -407,8 +389,27 @@ const EditVideos = () => {
               >
                 <Text style={styles(theme).closeModalButtonText}>Done</Text>
               </TouchableOpacity>
-            </View>
+            </KeyboardAvoidingView>
           </RNModal>
+
+          {isLoading ? (
+            <ActivityIndicator
+              size="large"
+              color="tomato"
+              style={{ marginTop: 16 }}
+            />
+          ) : (
+            <TouchableOpacity
+              onPress={updatePost}
+              style={styles(theme).createPostButton}
+            >
+              <Text style={styles(theme).createPostButtonText}>Update</Text>
+            </TouchableOpacity>
+          )}
+
+          {getError ? (
+            <Text style={styles(theme).error}>{getError}</Text>
+          ) : null}
         </View>
       </KeyboardAwareScrollView>
     </KeyboardAvoidingView>
@@ -416,13 +417,13 @@ const EditVideos = () => {
 };
 
 const styles = theme => ({
-  container: {
-    flex: 1,
-    backgroundColor: theme === 'light' ? '#fff' : '#121212',
-  },
-  scrollViewContainer: {
-    margin: 10,
-  },
+  // container: {
+  //   flex: 1,
+  //   backgroundColor: theme === 'light' ? '#fff' : '#121212',
+  // },
+  // scrollViewContainer: {
+  //   margin: 10,
+  // },
   uploadMode: {
     marginBottom: 16,
     alignItems: 'center',
@@ -459,7 +460,7 @@ const styles = theme => ({
   },
   video: {
     width: '100%',
-    height: 300,
+    height: 200,
     backgroundColor: '#000',
     marginBottom: 20,
     borderRadius: 10,
@@ -468,61 +469,196 @@ const styles = theme => ({
     margin: 5,
     color: theme === 'light' ? '#000' : '#fff',
   },
-  captionInput: {
+
+  container: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: theme === 'dark' ? '#121212' : '#f5f5f5',
+  },
+
+  input: {
     borderWidth: 1,
-    borderColor: theme === 'light' ? '#ccc' : '#444',
-    backgroundColor: theme === 'light' ? '#f9f9f9' : '#1e1e1e',
-    color: theme === 'light' ? '#000' : '#fff',
+    borderColor: '#ddd',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 16,
+    height: 100,
     textAlignVertical: 'top',
+    marginBottom: 16,
+    color: theme === 'dark' ? '#fff' : '#000',
   },
-  openTagModalButton: {
-    backgroundColor: '#444',
-    padding: 10,
+  previewContainer: {
+    marginBottom: 16,
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
     borderRadius: 8,
-    alignItems: 'center',
+  },
+  previewText: {
+    fontSize: 16,
+    color: theme === 'dark' ? '#fff' : '#000',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
-  openTagModalText: {
+  button: {
+    backgroundColor: '#eee',
+    padding: 12,
+    borderRadius: 8,
+    flex: 0.48,
+    alignItems: 'center',
+  },
+  takePhotoButton: {
+    backgroundColor: '#eee',
+    padding: 12,
+    borderRadius: 8,
+    flex: 0.48,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  buttonText: {
+    color: '#000',
+  },
+  takePhotoButtonText: {
+    color: '#000',
+  },
+  postButton: {
+    marginTop: 16,
+    backgroundColor: '#FF4500',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  postButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  error: {
+    color: theme === 'dark' ? '#fff' : '#000',
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+
+  // Tagging user styles.
+
+  openTagModalButton: {
+    backgroundColor: theme === 'dark' ? '#333' : '#e0e0e0',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  openTagModalText: {
+    color: theme === 'dark' ? '#fff' : '#000',
+    fontWeight: '500',
   },
   taggedUsersContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
     marginBottom: 16,
+    marginTop: 10,
   },
   taggedUser: {
-    backgroundColor: theme === 'light' ? '#eee' : '#1e1e1e',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
     flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
+    justifyContent: 'space-between',
+    backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f0f0f0',
+    padding: 12,
+    borderRadius: 10,
     marginBottom: 8,
   },
   taggedUserName: {
-    color: theme === 'light' ? '#000' : '#fff',
-    marginRight: 8,
+    color: theme === 'dark' ? '#fff' : '#000',
+    fontSize: 16,
   },
   removeTagButton: {
-    color: 'red',
-    fontWeight: 'bold',
+    color: 'tomato',
+    fontWeight: '500',
   },
-  pickImageButton: {
-    backgroundColor: 'tomato',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
+
+  modal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+    // marginBottom: 20
+  },
+  modalContent: {
+    backgroundColor: theme === 'dark' ? '#1a1a1a' : '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    // marginBottom: 20,
+    maxHeight: '85%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: theme === 'dark' ? '#fff' : '#000',
+  },
+  searchContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 24,
+    backgroundColor: theme === 'dark' ? '#2a2a2a' : '#f0f0f0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
+  searchBar: {
+    flex: 1,
+    color: theme === 'dark' ? '#fff' : '#000',
+    fontSize: 16,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: theme === 'dark' ? '#333' : '#ccc',
+  },
+  taggedDisplayInfo: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignContent: 'center',
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  TaggedProfileImage: {
+    width: 20,
+    height: 20,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  searchResultText: {
+    color: theme === 'dark' ? '#fff' : '#000',
+    fontSize: 16,
+  },
+  closeModalButton: {
+    backgroundColor: 'tomato',
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 20,
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  closeModalButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+
+  getError: {
+    textAlign: 'center',
+    alignItems: 'center',
+    color: theme === 'light' ? '#000' : '#fff',
+  },
+
   createPostButton: {
     backgroundColor: 'tomato',
     paddingVertical: 14,
@@ -533,71 +669,6 @@ const styles = theme => ({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-
-  // Modal Styles
-  modal: {
-    justifyContent: 'flex-end',
-    margin: 0,
-  },
-  modalContent: {
-    backgroundColor: theme === 'light' ? '#fff' : '#1c1c1c',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme === 'light' ? '#000' : '#fff',
-    marginBottom: 12,
-  },
-  searchContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme === 'light' ? '#f0f0f0' : '#2a2a2a',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  searchBar: {
-    flex: 1,
-    color: theme === 'light' ? '#000' : '#fff',
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme === 'light' ? '#eee' : '#333',
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  searchResultText: {
-    color: theme === 'light' ? '#000' : '#fff',
-    fontSize: 16,
-  },
-  closeModalButton: {
-    marginTop: 20,
-    backgroundColor: 'tomato',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeModalButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  getError: {
-    textAlign: 'center',
-    alignItems: 'center',
-    color: theme === 'light' ? '#000' : '#fff',
   },
 });
 

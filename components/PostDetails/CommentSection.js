@@ -1,15 +1,21 @@
-/* eslint-disable no-shadow */
 /* eslint-disable react-native/no-inline-styles */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-shadow */
+
 import {
-  Dimensions,
+  FlatList,
   Image,
+  Keyboard,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DarkMode from '../Theme/DarkMode';
 import {
@@ -17,360 +23,327 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
-import { auth, firestore } from '../../data/Firebase';
-import UserCollectionFech from '../UserCollectionFech';
+import { firestore } from '../../data/Firebase';
 import { useUser } from '../../data/Collections/FetchUserData';
 import PostInteranctionsScreen from '../Post/PostInteranctionsScreen';
-import { FieldValue } from '@react-native-firebase/firestore';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const CommentSection = () => {
   const theme = DarkMode();
   const route = useRoute();
   const { userData } = useUser();
   const { id } = route.params;
-  const user = auth().currentUser;
-  const uid = user.uid;
-  const navigation = useNavigation();
-  const { document, loading } = UserCollectionFech('posts', id);
+
   const [postDetails, setPostDetails] = useState(null);
-  const [replies, setReplies] = useState({}); // Track replies for each comment
-  const [replyingToCommentId, setReplyingToCommentId] = useState(null); // Track the comment being replied to
-  const [comment, setComments] = useState('');
-  const [isLiked, setIsLiked] = useState(false);
-  const [getError, setGetError] = useState('');
-  const [likes, setLikes] = useState(comment.likes_by_user || []);
+  const [comments, setComments] = useState([]);
+  const [replies, setReplies] = useState({});
+  const [expandedComments, setExpandedComments] = useState([]);
+  const [replyInput, setReplyInput] = useState({});
 
-  useEffect(() => {
-    setPostDetails(document);
-  }, [document]);
+  const replyListenersRef = useRef({}); // store reply listeners
 
-  // Use Firestore onSnapshot to listen for real-time updates on comments
+  // 🔁 Listen to post details
   useEffect(() => {
-    const unsubscribe = firestore()
+    if (!id) return;
+    const unsubPost = firestore()
       .collection('posts')
       .doc(id)
-      .onSnapshot(docSnapshot => {
-        if (docSnapshot.exists) {
-          const data = docSnapshot.data();
-          setPostDetails({ id: docSnapshot.id, ...data });
-          setComments(data.comments || []);
+      .onSnapshot(doc => {
+        if (doc.exists) {
+          setPostDetails({ id: doc.id, ...doc.data() });
         }
       });
 
-    // Cleanup the listener when the component unmounts
-    return () => unsubscribe();
+    return () => unsubPost();
   }, [id]);
 
-  const navigateToProfile = userId => {
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'UserProfileScreen',
-        params: { uid: userId },
-      }),
-    );
+  // 🔁 Listen to top-level comments only
+  useEffect(() => {
+    if (!postDetails?.id) return;
+
+    const unsubComments = firestore()
+      .collection('posts')
+      .doc(postDetails.id)
+      .collection('comments')
+      .orderBy('uploadedDate', 'desc')
+      .onSnapshot(snapshot => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setComments(data);
+      });
+
+    return () => unsubComments();
+  }, [postDetails?.id]);
+
+  // 📥 Load replies lazily when expanding
+  const loadReplies = commentId => {
+    if (replyListenersRef.current[commentId]) return; // already listening
+
+    const unsub = firestore()
+      .collection('posts')
+      .doc(postDetails.id)
+      .collection('comments')
+      .doc(commentId)
+      .collection('replies')
+      .orderBy('uploadedDate', 'desc')
+      .onSnapshot(snapshot => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setReplies(prev => ({ ...prev, [commentId]: data }));
+      });
+
+    replyListenersRef.current[commentId] = unsub;
   };
 
-  const addReplyToFirebase = async commentId => {
-    if (!postDetails || !userData || !replies[commentId]?.trim()) {
-      console.error('Post details, user profile fetch, or reply is undefined');
-      return;
+  const unloadReplies = commentId => {
+    if (replyListenersRef.current[commentId]) {
+      replyListenersRef.current[commentId]();
+      delete replyListenersRef.current[commentId];
+      setReplies(prev => ({ ...prev, [commentId]: [] }));
     }
+  };
 
-    try {
-      const { displayName, lastName, profileImage, uid } = userData; // assuming `uid` is part of userData
-      const today = new Date();
-      const date = today.toDateString();
-      const hourPosted = today.toLocaleTimeString([], {
+  const toggleReplies = commentId => {
+    if (expandedComments.includes(commentId)) {
+      setExpandedComments(prev => prev.filter(id => id !== commentId));
+      unloadReplies(commentId);
+    } else {
+      setExpandedComments(prev => [...prev, commentId]);
+      loadReplies(commentId);
+    }
+  };
+
+  // ➕ Add reply
+  const addReply = async commentId => {
+    const text = replyInput[commentId]?.trim();
+    if (!text || !userData?.uid) return;
+
+    const { displayName, lastName, profileImage, uid } = userData;
+    const newReply = {
+      uploadedDate: firestore.Timestamp.now(),
+      hourPosted: new Date().toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
-      });
+      }),
+      displayName,
+      lastName,
+      profileImage,
+      uid,
+      reply: text,
+      likes: [],
+    };
 
-      const newReply = {
-        uploadedDate: date,
-        HourPostes: hourPosted,
-        displayName,
-        profileImage,
-        lastName,
-        uid,
-        reply: replies[commentId],
-      };
+    await firestore()
+      .collection('posts')
+      .doc(postDetails.id)
+      .collection('comments')
+      .doc(commentId)
+      .collection('replies')
+      .add(newReply);
 
-      // Update comment with new reply
-      const updatedComments = postDetails.comments.map(comment => {
-        if (comment.id === commentId) {
-          const existingReplies = comment.replies || [];
-          return {
-            ...comment,
-            replies: [...existingReplies, newReply],
-          };
+    setReplyInput(prev => ({ ...prev, [commentId]: '' }));
+  };
+
+  // ❤️ Toggle likes for comments/replies
+  const toggleLike = async (type, commentId, replyId) => {
+    const ref =
+      type === 'comment'
+        ? firestore()
+            .collection('posts')
+            .doc(postDetails.id)
+            .collection('comments')
+            .doc(commentId)
+        : firestore()
+            .collection('posts')
+            .doc(postDetails.id)
+            .collection('comments')
+            .doc(commentId)
+            .collection('replies')
+            .doc(replyId);
+
+    const docSnap = await ref.get();
+    if (!docSnap.exists) return;
+
+    const likes = docSnap.data().likes || [];
+    const hasLiked = likes.includes(userData.uid);
+
+    await ref.update({
+      likes: hasLiked
+        ? firestore.FieldValue.arrayRemove(userData.uid)
+        : firestore.FieldValue.arrayUnion(userData.uid),
+    });
+  };
+
+  // Cleanup listeners
+  useEffect(() => {
+    return () => {
+      Object.values(replyListenersRef.current).forEach(unsub => unsub());
+    };
+  }, []);
+
+  // Render a comment item
+  const renderComment = ({ item }) => (
+    // <KeyboardAwareScrollView
+    //   style={styles(theme).container}
+    //   contentContainerStyle={{ paddingBottom: 60 }}
+    //   enableOnAndroid
+    //   extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
+    //   keyboardShouldPersistTaps="handled"
+    // >
+
+    <View style={styles(theme).commenterContainer}>
+      <Image
+        source={
+          item.profileImage
+            ? { uri: item.profileImage }
+            : require('../../assets/thumblogo.png')
         }
-        return comment;
-      });
+        style={styles(theme).commentProfileImage}
+      />
 
-      // Update Firestore
-      await firestore().collection('posts').doc(postDetails.id).update({
-        comments: updatedComments,
-      });
+      <View style={styles(theme).commentContent}>
+        <Text style={styles(theme).commentDisplayName}>
+          {item.displayName} {item.lastName}
+        </Text>
 
-      // Clear reply input
-      setReplies(prev => ({
-        ...prev,
-        [commentId]: '',
-      }));
+        <View style={styles.apply(theme).commentsLikeContents}>
+          <Text style={styles(theme).commentText}>{item.comment}</Text>
 
-      console.log('Reply added successfully!');
-    } catch (error) {
-      console.error('Error adding reply: ', error);
-    }
-  };
+          <View style={styles(theme).commentLike}>
+            <TouchableOpacity onPress={() => toggleLike('comment', item.id)}>
+              <Ionicons
+                name={
+                  item.likes?.includes(userData?.uid)
+                    ? 'heart'
+                    : 'heart-outline'
+                }
+                size={18}
+                color={item.likes?.includes(userData?.uid) ? '#FF4500' : '#888'}
+              />
+            </TouchableOpacity>
+            <Text style={styles(theme).likeCountText}>
+              {' '}
+              {item.likes?.length || 0}
+            </Text>
+          </View>
+        </View>
 
-  const toggleCommentLike = async commentId => {
-    if (!postDetails || !userData) return;
+        {/* Toggle Replies */}
+        <TouchableOpacity onPress={() => toggleReplies(item.id)}>
+          <Text style={styles(theme).replyButtonText}>
+            {expandedComments.includes(item.id)
+              ? 'Hide Replies'
+              : `View Replies`}
+          </Text>
+        </TouchableOpacity>
 
-    const updatedComments = postDetails.comments.map(comment => {
-      if (comment.id === commentId) {
-        const existingLikes = comment.likes || [];
-        const userHasLiked = existingLikes.includes(userData.uid);
+        {/* <TouchableOpacity onPress={() => toggleReplies(item.id)}>
+          <Text style={styles(theme).replyButtonText}>
+            {expandedComments.includes(item.id)
+              ? 'Hide Replies'
+              : `View Replies (${item.replyCount || 0})`}
+          </Text>
+        </TouchableOpacity> */}
 
-        return {
-          ...comment,
-          likes: userHasLiked
-            ? existingLikes.filter(uid => uid !== userData.uid)
-            : [...existingLikes, userData.uid],
-        };
-      }
-      return comment;
-    });
+        {/* Render replies if expanded */}
+        {expandedComments.includes(item.id) && (
+          <View style={styles(theme).repliesContainer}>
+            {(replies[item.id] || []).map(reply => (
+              <View key={reply.id} style={styles(theme).replyContainer}>
+                <Image
+                  source={
+                    reply.profileImage
+                      ? { uri: reply.profileImage }
+                      : require('../../assets/thumblogo.png')
+                  }
+                  style={styles(theme).replyProfileImage}
+                />
+                <View style={styles(theme).replyContent}>
+                  <Text style={styles(theme).replyDisplayName}>
+                    {reply.displayName} {reply.lastName}
+                  </Text>
 
-    try {
-      await firestore()
-        .collection('posts')
-        .doc(postDetails.id)
-        .update({ comments: updatedComments });
-
-      setPostDetails(prev => ({
-        ...prev,
-        comments: updatedComments,
-      }));
-    } catch (error) {
-      console.error('Failed to toggle like: ', error);
-    }
-  };
-
-  const toggleReplyLike = async (commentId, replyIndex) => {
-    if (!postDetails || !userData) return;
-
-    const updatedComments = postDetails.comments.map(comment => {
-      if (comment.id === commentId) {
-        const updatedReplies = comment.replies.map((reply, idx) => {
-          if (idx === replyIndex) {
-            const existingLikes = reply.likes || [];
-            const userHasLiked = existingLikes.includes(userData.uid);
-
-            return {
-              ...reply,
-              likes: userHasLiked
-                ? existingLikes.filter(uid => uid !== userData.uid)
-                : [...existingLikes, userData.uid],
-            };
-          }
-          return reply;
-        });
-
-        return {
-          ...comment,
-          replies: updatedReplies,
-        };
-      }
-      return comment;
-    });
-
-    try {
-      await firestore()
-        .collection('posts')
-        .doc(postDetails.id)
-        .update({ comments: updatedComments });
-
-      setPostDetails(prev => ({
-        ...prev,
-        comments: updatedComments,
-      }));
-    } catch (error) {
-      console.error('Failed to toggle reply like: ', error);
-    }
-  };
-
-  return (
-    <View>
-      {/* Comment Section */}
-      {postDetails && <PostInteranctionsScreen post={postDetails} />}
-
-      {postDetails && (
-        <View style={styles(theme).commenterMainContainer}>
-          {postDetails.comments?.length > 0 ? (
-            postDetails.comments.map((comment, index) => (
-              <View key={index} style={styles(theme).commenterContainer}>
-                <TouchableOpacity
-                  onPress={() => navigateToProfile(comment.uid)}
-                >
-                  <Image
-                    source={
-                      comment.profileImage
-                        ? { uri: comment.profileImage }
-                        : require('../../assets/thumblogo.png')
-                    }
-                    style={styles(theme).commentProfileImage}
-                  />
-                </TouchableOpacity>
-
-                <View style={styles(theme).commentContent}>
-                  <TouchableOpacity
-                    onPress={() => navigateToProfile(comment.uid)}
-                  >
-                    <Text style={styles(theme).commentDisplayName}>
-                      {comment.displayName} {comment.lastName}
-                    </Text>
-                  </TouchableOpacity>
+                  {/* Like Button for Reply */}
 
                   <View style={styles.apply(theme).commentsLikeContents}>
-                    <Text style={styles(theme).commentText}>
-                      {comment.comment}
-                    </Text>
-
+                    <Text style={styles(theme).commentText}>{reply.reply}</Text>
                     <View style={styles(theme).commentLike}>
                       <TouchableOpacity
-                        onPress={() => toggleCommentLike(comment.id)}
+                        onPress={() => toggleLike('reply', item.id, reply.id)}
                       >
                         <Ionicons
                           name={
-                            comment.likes?.includes(userData.uid)
+                            reply.likes?.includes(userData?.uid)
                               ? 'heart'
                               : 'heart-outline'
                           }
-                          size={20}
+                          size={16}
                           color={
-                            comment.likes?.includes(userData.uid)
+                            reply.likes?.includes(userData?.uid)
                               ? '#FF4500'
                               : '#888'
                           }
                         />
                       </TouchableOpacity>
                       <Text style={styles(theme).likeCountText}>
-                        {comment.likes?.length}
+                        {' '}
+                        {reply.likes?.length || 0}
                       </Text>
                     </View>
                   </View>
-
-                  {/* Replies */}
-                  {comment.replies?.length > 0 && (
-                    <View style={styles(theme).repliesContainer}>
-                      {comment.replies.map((reply, replyIndex) => (
-                        <View
-                          key={replyIndex}
-                          style={styles(theme).replyContainer}
-                        >
-                          <TouchableOpacity
-                            onPress={() => navigateToProfile(reply.uid)}
-                          >
-                            <Image
-                              source={
-                                reply.profileImage
-                                  ? { uri: reply.profileImage }
-                                  : require('../../assets/thumblogo.png')
-                              }
-                              style={styles(theme).replyProfileImage}
-                            />
-                          </TouchableOpacity>
-                          <View style={styles(theme).replyContent}>
-                            <TouchableOpacity
-                              onPress={() => navigateToProfile(reply.uid)}
-                            >
-                              <Text style={styles(theme).replyDisplayName}>
-                                {reply.displayName} {reply.lastName}
-                              </Text>
-                            </TouchableOpacity>
-
-                            <View
-                              style={styles.apply(theme).commentsLikeContents}
-                            >
-                              <Text style={styles(theme).commentText}>
-                                {reply.reply}
-                              </Text>
-
-                              <View style={styles(theme).commentLike}>
-                                <TouchableOpacity
-                                  onPress={() =>
-                                    toggleReplyLike(comment.id, replyIndex)
-                                  }
-                                >
-                                  <Ionicons
-                                    name={
-                                      reply.likes?.includes(userData.uid)
-                                        ? 'heart'
-                                        : 'heart-outline'
-                                    }
-                                    size={18}
-                                    color={
-                                      reply.likes?.includes(userData.uid)
-                                        ? '#FF4500'
-                                        : '#888'
-                                    }
-                                  />
-                                </TouchableOpacity>
-                                <Text style={styles(theme).likeCountText}>
-                                  {reply.likes?.length}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* Reply Button */}
-                  <TouchableOpacity
-                    onPress={() => setReplyingToCommentId(comment.id)}
-                    style={styles(theme).replyButton}
-                  >
-                    <Text style={styles(theme).replyButtonText}>Reply</Text>
-                  </TouchableOpacity>
-
-                  {/* Reply Input */}
-                  {replyingToCommentId === comment.id && (
-                    <View style={styles(theme).replyInputContainer}>
-                      <TextInput
-                        style={styles(theme).replyInput}
-                        placeholder="Write a reply..."
-                        placeholderTextColor={
-                          theme === 'dark' ? '#bbb' : '#888'
-                        }
-                        value={replies[comment.id] || ''}
-                        maxLength={500}
-                        onChangeText={text =>
-                          setReplies(prev => ({
-                            ...prev,
-                            [comment.id]: text,
-                          }))
-                        }
-                      />
-                      <TouchableOpacity
-                        onPress={() => addReplyToFirebase(comment.id)}
-                      >
-                        <Ionicons name="send" size={20} color="#FF4500" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </View>
               </View>
-            ))
-          ) : (
-            <Text style={styles(theme).noComment}>
-              No comment(s) yet, be the first.
-            </Text>
-          )}
-        </View>
+            ))}
+
+            {/* Reply Input */}
+            <View style={styles(theme).replyInputContainer}>
+              <TextInput
+                style={styles(theme).replyInput}
+                placeholder="Write a reply..."
+                placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
+                value={replyInput[item.id] || ''}
+                onChangeText={text =>
+                  setReplyInput(prev => ({ ...prev, [item.id]: text }))
+                }
+              />
+              <TouchableOpacity onPress={() => addReply(item.id)}>
+                <Ionicons name="send" size={20} color="#FF4500" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
+  return (
+    <View>
+      {postDetails && <PostInteranctionsScreen post={postDetails} />}
+
+      {postDetails && (
+        <Text style={{ fontWeight: 'bold' }}>{postDetails.title}</Text>
       )}
+
+      <KeyboardAwareScrollView
+        style={styles(theme).container}
+        contentContainerStyle={{ paddingBottom: 60 }}
+        enableOnAndroid
+        extraScrollHeight={Platform.OS === 'ios' ? 100 : 20}
+        keyboardShouldPersistTaps="handled"
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <FlatList
+            data={comments}
+            keyExtractor={comment => comment.id}
+            renderItem={renderComment}
+            contentContainerStyle={{ paddingBottom: 50 }}
+          />
+        </TouchableWithoutFeedback>
+      </KeyboardAwareScrollView>
     </View>
   );
 };
@@ -387,6 +360,7 @@ const styles = theme =>
       flexDirection: 'row',
       alignItems: 'flex-start',
       marginBottom: 16,
+      margin: 10,
     },
 
     commentProfileImage: {
@@ -476,10 +450,14 @@ const styles = theme =>
       fontSize: 14,
       color: theme === 'dark' ? '#fff' : '#000',
     },
+    likeCountText:{
+      color: theme === 'dark' ? '#fff' : '#000',
 
+    },
     noComment: {
       textAlign: 'center',
       color: theme === 'dark' ? '#bbb' : '#444',
       fontSize: 14,
     },
+
   });

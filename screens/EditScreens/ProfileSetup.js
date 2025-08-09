@@ -3,7 +3,7 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-catch-shadow */
 /* eslint-disable no-shadow */
- 
+
 import {
   StyleSheet,
   Text,
@@ -90,6 +90,29 @@ const ProfileSetup = () => {
     }
   };
 
+// const uploadImage = async (imagePath, folder, uid) => {
+//   if (!imagePath || !folder || !uid) {
+//     console.error('Missing imagePath, folder, or uid.');
+//     return null;
+//   }
+
+//   const fileName = imagePath.substring(imagePath.lastIndexOf('/') + 1);
+//   const timestamp = Date.now();
+//   const storagePath = `${folder}/${uid}/${timestamp}_${fileName}`;  // include uid folder
+//   const storageRef = storage().ref(storagePath);
+
+//   try {
+//     await storageRef.putFile(imagePath);
+//     const downloadURL = await storageRef.getDownloadURL();
+//     return downloadURL;
+//   } catch (error) {
+//     console.error(`Error uploading image to ${folder}:`, error);
+//     return null;
+//   }
+// };
+
+
+
   const uploadImage = async (imagePath, folder) => {
     if (!imagePath || !folder) {
       console.error('Missing imagePath or folder.');
@@ -100,9 +123,7 @@ const ProfileSetup = () => {
     const timestamp = Date.now();
     const storagePath = `${folder}/${timestamp}_${fileName}`;
     const storageRef = storage().ref(storagePath);
-    // const task = storageRef.putFile(storagePath); // This handles local files
 
-    // await task;
     try {
       const response = await fetch(imagePath);
       if (!response.ok) throw new Error('Failed to fetch the image.');
@@ -154,32 +175,27 @@ const ProfileSetup = () => {
     fetchProfile();
   }, [uid]);
 
-
-
   useEffect(() => {
-  const fetchProfile = async () => {
-    if (!uid) return;
-    try {
-      const docSnap = await firestore()
-        .collection('profileUpdate')
-        .doc(uid)
-        .get();
-      const data = docSnap.data();
-      if (data) {
-        // This fills both:
-        setTagUser(data.taggedUsers || []);      // for display
-        setTaggedUsers(data.taggedUsers || []);  // for saving/editing
+    const fetchProfile = async () => {
+      if (!uid) return;
+      try {
+        const docSnap = await firestore()
+          .collection('profileUpdate')
+          .doc(uid)
+          .get();
+        const data = docSnap.data();
+        if (data) {
+          // This fills both:
+          setTagUser(data.taggedUsers || []); // for display
+          setTaggedUsers(data.taggedUsers || []); // for saving/editing
+        }
+      } catch (err) {
+        console.error('Failed to fetch user profile:', err);
       }
-    } catch (err) {
-      console.error('Failed to fetch user profile:', err);
-    }
-  };
+    };
 
-  fetchProfile();
-}, [uid]);
-
-
-
+    fetchProfile();
+  }, [uid]);
 
   // Search users for tagging
   const handleSearch = async () => {
@@ -214,7 +230,7 @@ const ProfileSetup = () => {
       setIsLoading(false);
     } catch (error) {
       console.error('Error searching users:', error);
-      setError('Error searching users')
+      setError('Error searching users');
       setIsLoading(false);
     }
   };
@@ -224,92 +240,86 @@ const ProfileSetup = () => {
     return `_${Math.random().toString(36).substr(2, 6)}`;
   };
 
- const handleSaveProfile = async () => {
-  if (!uid) return Alert.alert('Error', 'User is not authenticated');
+  const handleSaveProfile = async () => {
+    if (!uid) return Alert.alert('Error', 'User is not authenticated');
 
-  setLoading(true);
-  setError('');
+    setLoading(true);
+    setError('');
 
-  try {
-    const now = firestore.Timestamp.now();
-    const today = new Date();
-    const date = today.toDateString();
-    const hours = today.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    const dateSignedUp = today.toLocaleDateString();
+    try {
+      const now = firestore.Timestamp.now();
+      const today = new Date();
+      const date = today.toDateString();
+      const hours = today.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const dateSignedUp = today.toLocaleDateString();
 
-    const updateData = {
-      updatedAt: now,
-      date,
-      hours,
-      dateSignedUp,
-      uid,
-    };
+      const updateData = {
+        updatedAt: now,
+        date,
+        hours,
+        dateSignedUp,
+        uid,
+      };
 
-    // ✅ Only update username if it changed
-    if (userName && userName !== originalUserName) {
-      const uniqueUserName = userName + generateUniqueId();
-      updateData.userName = uniqueUserName;
+      // ✅ Only update username if it changed
+      if (userName && userName !== originalUserName) {
+        const uniqueUserName = userName + generateUniqueId();
+        updateData.userName = uniqueUserName;
 
         setUserName(uniqueUserName);
-  setOriginalUserName(uniqueUserName);
+        setOriginalUserName(uniqueUserName);
+      }
+      // if(userName) updateData.userName = uniqueUserName;
+      if (displayName) updateData.displayName = displayName;
+      if (lastName) updateData.lastName = lastName;
+      if (bio) updateData.bio = bio;
+      if (link) updateData.link = link;
+      
+
+      const uploadedBannerImage =
+        backgroundImageBanner && backgroundImageBanner !== defaultBannerImage
+          ? await uploadImage(backgroundImageBanner, 'profileBackgrounds')
+          : null;
+
+      const uploadedProfileImage =
+        profileEditImage && profileEditImage !== defaultProfileImage
+          ? 
+          // await uploadImage(profileEditImage, 'profilePictures')
+           await uploadImage(profileEditImage, 'profilePictures', auth().currentUser.uid)
+          : null;
+
+      if (uploadedBannerImage) updateData.backgroundImage = uploadedBannerImage;
+      if (uploadedProfileImage) updateData.profileImage = uploadedProfileImage;
+ 
+      if (taggedUsers.length > 0) {
+        updateData.taggedUsers = taggedUsers.map(user => ({
+          displayName: user.displayName,
+          lastName: user.lastName,
+          uid: user.uid,
+          profileImage: user.profileImage,
+          taggedAt: firestore.Timestamp.now(),
+        }));
+      } else {
+        updateData.taggedUsers = []; // <-- include this to fully remove all if cleared
+      }
+
+      await firestore()
+        .collection('profileUpdate')
+        .doc(uid)
+        .set(updateData, { merge: true });
+
+      setError('');
+      navigation.navigate('feed');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError(`Failed to update profile: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
-    // if(userName) updateData.userName = uniqueUserName;
-    if (displayName) updateData.displayName = displayName;
-    if (lastName) updateData.lastName = lastName;
-    if (bio) updateData.bio = bio;
-    if (link) updateData.link = link;
-
-    const uploadedBannerImage =
-      backgroundImageBanner && backgroundImageBanner !== defaultBannerImage
-        ? await uploadImage(backgroundImageBanner, 'profileBackgrounds')
-        : null;
-
-    const uploadedProfileImage =
-      profileEditImage && profileEditImage !== defaultProfileImage
-        ? await uploadImage(profileEditImage, 'profilePictures')
-        : null;
-
-    if (uploadedBannerImage) updateData.backgroundImage = uploadedBannerImage;
-    if (uploadedProfileImage) updateData.profileImage = uploadedProfileImage;
-
-    // if (taggedUsers.length > 0) {
-    //   updateData.taggedUsers = taggedUsers.map(user => ({
-    //     displayName: user.displayName,
-    //     lastName: user.lastName,
-    //     uid: user.uid,
-    //     taggedAt: firestore.Timestamp.now(),
-    //   }));
-    // }
-
-    if (taggedUsers.length > 0) {
-  updateData.taggedUsers = taggedUsers.map(user => ({
-    displayName: user.displayName,
-    lastName: user.lastName,
-    uid: user.uid,
-    profileImage:user.profileImage,
-    taggedAt: firestore.Timestamp.now(),
-  }));
-} else {
-  updateData.taggedUsers = []; // <-- include this to fully remove all if cleared
-}
-
-    await firestore()
-      .collection('profileUpdate')
-      .doc(uid)
-      .set(updateData, { merge: true });
-
-    setError('');
-    navigation.navigate('feed');
-  } catch (err) {
-    console.error('Error updating profile:', err);
-    setError(`Failed to update profile: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const debounceRef = useRef(null);
 
@@ -326,7 +336,6 @@ const ProfileSetup = () => {
     debounceRef.current = setTimeout(() => {
       handleSearch();
     }, 400); // debounce time in ms
-     
   }, [searchQuery]);
 
   useEffect(() => {
@@ -390,11 +399,12 @@ const ProfileSetup = () => {
           style={themedStyles.editProfileIcon}
           onPress={uploadProfImg}
         >
-          <Ionicons name="add" size={24} color="#121212" />
+          <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </ImageBackground>
 
       <View style={themedStyles.formContainer}>
+        <Text style={styles(theme).texth2}>First name</Text>
         <TextInput
           style={themedStyles.input}
           placeholder="First Name"
@@ -402,6 +412,7 @@ const ProfileSetup = () => {
           onChangeText={setDisplayName}
           placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
         />
+        <Text style={styles(theme).texth2}>Last name</Text>
         <TextInput
           style={themedStyles.input}
           placeholder="Last Name"
@@ -409,6 +420,7 @@ const ProfileSetup = () => {
           onChangeText={setLastName}
           placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
         />
+        <Text style={styles(theme).texth2}>Username</Text>
         <TextInput
           style={themedStyles.input}
           placeholder="Username"
@@ -417,15 +429,16 @@ const ProfileSetup = () => {
           autoCapitalize="none"
           placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
         />
-
+        <Text style={styles(theme).texth2}>Link</Text>
         <TextInput
           style={themedStyles.input}
-          placeholder="Link"
+          placeholder="https://example.com"
           value={link}
           onChangeText={setLink}
           autoCapitalize="none"
           placeholderTextColor={theme === 'dark' ? '#bbb' : '#888'}
         />
+        <Text style={styles(theme).texth2}>Bio</Text>
         <TextInput
           style={themedStyles.textArea}
           placeholder="Bio"
@@ -515,9 +528,15 @@ const ProfileSetup = () => {
                     source={{ uri: item.profileImage }}
                     style={styles(theme).tagProfileImage}
                   />
-                  <Text style={styles(theme).searchResultText}>
+                 <View>
+                   <Text style={styles(theme).searchResultText}>
                     {item.displayName} {item.lastName}
                   </Text>
+
+                   <Text style={styles(theme).searchResultUserName}>
+                    {item.userName} 
+                  </Text>
+                 </View>
                 </TouchableOpacity>
               )}
               style={{ marginTop: 10 }}
@@ -537,7 +556,8 @@ const ProfileSetup = () => {
         ) : (
           <TouchableOpacity
             style={themedStyles.saveButton}
-            onPress={handleSaveProfile}>
+            onPress={handleSaveProfile}
+          >
             <Text style={themedStyles.saveButtonText}>Save</Text>
           </TouchableOpacity>
         )}
@@ -570,7 +590,8 @@ export const styles = (theme, width) =>
       zIndex: 2,
     },
     iconButton: {
-      backgroundColor: theme === 'dark' ? '#fff2' : '#0002',
+      // backgroundColor: theme === 'dark' ? '#fff2' : '#0002',
+      backgroundColor: '#121212',
       padding: 8,
       borderRadius: 30,
     },
@@ -587,15 +608,20 @@ export const styles = (theme, width) =>
       position: 'absolute',
       right: width / 2 - 55 - 10, // <-- 🔴 Potential NaN
       bottom: -10,
-      backgroundColor: '#fff',
+      backgroundColor: '#121212',
       padding: 5,
-      borderRadius: 15,
+      borderRadius: 20,
       zIndex: 3,
     },
 
     formContainer: {
       padding: 20,
       marginTop: 20,
+    },
+    texth2:{
+      margin: 5,
+            color: theme === 'dark' ? '#fff' : '#000',
+
     },
     input: {
       backgroundColor: theme === 'dark' ? '#1e1e1e' : '#fff',
@@ -734,8 +760,8 @@ export const styles = (theme, width) =>
       alignItems: 'center',
     },
     tagProfileImage: {
-      width: 40,
-      height: 40,
+      width: 35,
+      height: 35,
       borderRadius: 20,
       marginRight: 12,
     },
@@ -748,6 +774,12 @@ export const styles = (theme, width) =>
     searchResultText: {
       color: theme === 'dark' ? '#fff' : '#000',
       fontSize: 16,
+      fontWeight: 'bold'
+    },
+      searchResultTextUserName: {
+      color: theme === 'dark' ? '#fff' : '#000',
+      fontSize: 14,
+      fontWeight: 'normal'
     },
     closeModalButton: {
       backgroundColor: 'tomato',

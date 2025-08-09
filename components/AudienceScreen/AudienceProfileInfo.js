@@ -35,9 +35,9 @@ const AudienceProfileInfo = () => {
     );
   };
 
-  const openUserLink = useCallback(() => {
-    if (publicProfile?.link) Linking.openURL(publicProfile.link);
-  }, [publicProfile?.link]);
+  // const openUserLink = useCallback(() => {
+  //   if (publicProfile?.link) Linking.openURL(publicProfile.link);
+  // }, [publicProfile?.link]);
 
   return (
     <View>
@@ -51,7 +51,7 @@ const AudienceProfileInfo = () => {
           <Text style={styles(theme).username}>{publicProfile?.userName}</Text>
 
           {publicProfile?.link ? (
-            <TouchableOpacity onPress={openUserLink}>
+            <TouchableOpacity onPress={()=> Linking.openURL(publicProfile.link)}>
               <Text style={styles(theme).link}>{publicProfile.link}</Text>
             </TouchableOpacity>
           ) : null}

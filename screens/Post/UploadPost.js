@@ -1,3 +1,5 @@
+/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable no-shadow */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -42,8 +44,10 @@ const UploadPost = () => {
   const [compressedVideoUri, setCompressedVideoUri] = useState(null);
   const [thumbnail, setThumbnail] = useState(null);
   const [loadingCompression, setLoadingCompression] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-
+  const [isPlaying] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const debounceRef = useRef(null);
   useEffect(() => {
     setProfileData(userData);
   }, [userData]);
@@ -102,9 +106,6 @@ const UploadPost = () => {
 
   // Tag User
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-
   const handleSearch = async () => {
     try {
       setIsLoading(true);
@@ -141,8 +142,6 @@ const UploadPost = () => {
       setIsLoading(false);
     }
   };
-
-  const debounceRef = useRef(null);
 
   useEffect(() => {
     if (searchQuery.trim().length === 0) {
@@ -195,8 +194,7 @@ const UploadPost = () => {
 
   const uploadImage = async () => {
     if (!media?.uri) return null;
-    // const ref = storage().ref(`photos/${Date.now()}_${uid}.jpg`);
-    const ref = storage().ref(`photos/${uid}/${Date.now()}.jpg`);
+    const ref = storage().ref(`user_uploads/${uid}/${Date.now()}.jpg`);
 
     try {
       await ref.putFile(media.uri);
@@ -209,18 +207,25 @@ const UploadPost = () => {
 
   const uploadVideo = async () => {
     if (!compressedVideoUri) return null;
-    const stat = await RNFS.stat(compressedVideoUri);
-    if (stat.size / (1024 * 1024) > 50) {
-      Alert.alert('Error', 'Compressed video exceeds 50MB');
-      return null;
-    }
 
-    const ref = storage().ref(`videos/${Date.now()}_${uid}.mp4`);
     try {
+      const stat = await RNFS.stat(compressedVideoUri);
+      if (stat.size / (1024 * 1024) > 50) {
+        Alert.alert('Error', 'Compressed video exceeds 50MB');
+        return null;
+      }
+
+      // Match your Storage rules folder for per-user uploads
+      const ref = storage().ref(`user_uploads/${uid}/${Date.now()}.mp4`);
+
       await ref.putFile(compressedVideoUri);
       return await ref.getDownloadURL();
     } catch (err) {
       console.error('Video upload failed:', err);
+      Alert.alert(
+        'Upload Failed',
+        'There was an error uploading your video. Please try again.',
+      );
       return null;
     }
   };
@@ -251,23 +256,25 @@ const UploadPost = () => {
       }
 
       const postData = {
-        caption,
-        displayName,
-        lastName,
-        profileImage,
-        uid,
-        image: imageUrl,
-        video: videoUrl,
-        thumbnail: thumbnail || null,
-        taggedUsers: taggedUsers.map(user => ({
-          displayName: user.displayName,
-          lastName: user.lastName,
-          uid: user.uid,
-          taggedAt: firestore.Timestamp.now(),
-        })),
-        uploadedDate: date,
-        HourPosted: hour,
-        time: formattedDate,
+        caption: caption ?? '', // fallback to empty string
+        displayName: displayName ?? '',
+        lastName: lastName ?? '',
+        profileImage: profileImage ?? '',
+        uid: uid ?? '',
+        image: imageUrl ?? null,
+        video: videoUrl ?? null,
+        thumbnail: thumbnail ?? null,
+        taggedUsers: Array.isArray(taggedUsers)
+          ? taggedUsers.map(user => ({
+              displayName: user.displayName ?? '',
+              lastName: user.lastName ?? '',
+              uid: user.uid ?? '',
+              taggedAt: firestore.Timestamp.now(),
+            }))
+          : [],
+        uploadedDate: date ?? '',
+        HourPosted: hour ?? '',
+        time: formattedDate ?? '',
         createdAt: firestore.Timestamp.now(),
       };
 
@@ -289,21 +296,6 @@ const UploadPost = () => {
             }),
         ),
       );
-
-      // Save post to correct collection
-      //  if (imageUrl && !videoUrl) {
-      //         await firestore().collection('posts').add(postData);
-      //         setGetError('Photo post created.');
-      //       } else if(videoUrl && !imageUrl) {
-      //         await firestore().collection('videos').add(postData);
-      //         setGetError('Video post created.');
-      //       } else if (videoUrl && imageUrl) {
-      //         await firestore().collection('mixed_posts').add(postData);
-      //         setGetError('Image & video post created.');
-      //       } else {
-      //         await firestore().collection('text_posts').add(postData);
-      //         setGetError('Text-only post created.');
-      //       }
 
       if (imageUrl && !videoUrl) {
         await firestore().collection('posts').add(postData);
@@ -488,9 +480,15 @@ const UploadPost = () => {
                       source={{ uri: item.profileImage }}
                       style={styles(theme).profileImage}
                     />
-                    <Text style={styles(theme).searchResultText}>
+                   <View>
+                     <Text style={styles(theme).searchResultText}>
                       {item.displayName} {item.lastName}
                     </Text>
+
+                     <Text style={styles(theme).searchResultTextUserName}>
+                      {item.userName}  
+                    </Text> 
+                   </View>
                   </TouchableOpacity>
                 )}
                 style={{ marginTop: 10 }}
@@ -692,8 +690,8 @@ const styles = theme =>
       alignItems: 'center',
     },
     profileImage: {
-      width: 40,
-      height: 40,
+      width: 35,
+      height: 35,
       borderRadius: 20,
       marginRight: 12,
     },
@@ -706,6 +704,11 @@ const styles = theme =>
     searchResultText: {
       color: theme === 'dark' ? '#fff' : '#000',
       fontSize: 16,
+      fontWeight: 'bold'
+    },
+      searchResultTextUserName: {
+      color: theme === 'dark' ? '#fff' : '#000',
+      fontSize: 14,
     },
     closeModalButton: {
       backgroundColor: 'tomato',

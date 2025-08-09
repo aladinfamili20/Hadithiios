@@ -21,7 +21,6 @@ import { useUser } from '../../data/Collections/FetchUserData';
 import { auth } from '../../data/Firebase';
 import Divider from '../../components/Divider';
 
-
 const FollowersScreen = () => {
   const theme = DarkMode();
   const { userData } = useUser();
@@ -36,6 +35,7 @@ const FollowersScreen = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followStatus, setFollowStatus] = useState({});
   const navigation = useNavigation();
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     setProfileData(userData);
@@ -90,139 +90,191 @@ const FollowersScreen = () => {
       handleSearch();
     }, 400); // debounce time in ms
   }, [searchQuery]);
- 
+
+  const combinedNotifications = Array.isArray(notifications)
+    ? notifications.sort(
+        (a, b) => b.timestamp.toMillis() - a.timestamp.toMillis(),
+      )
+    : [];
 
   // fetched followers
   useEffect(() => {
-    const getFollewerNotification = async () => {
-      if (!uid) return;
-      try {
-        const snapshot = await firestore()
-          .collection('notifications')
-          .where('recipientId', '==', uid)
-          .get();
+    if (!uid) return;
 
-        const documents = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          // type: 'new_follower',
-          // key: `new_follower-${doc.id}`,
-          timestamp: doc.data().timestamp || Timestamp.now(),
-        }));
-        setFollowers(documents);
-        setFollowStatus()
-      } catch (error) {
-        console.error('Error fetching follower notifications:', error);
-      } finally {
-        setLoading(false); // ✅ move here
-      }
-    };
-    getFollewerNotification();
+    const unsubscribe = firestore()
+      .collection('notifications')
+      .where('recipientId', '==', uid)
+      .orderBy('timestamp', 'desc')
+      .onSnapshot(
+        snapshot => {
+          const data = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            key: `${doc.data().type}-${doc.id}`,
+            timestamp: doc.data().timestamp || firestore.Timestamp.now(),
+          }));
+          setNotifications(data);
+          setLoading(false);
+        },
+        error => {
+          console.error('Error fetching notifications:', error);
+          setLoading(false);
+        },
+      );
+
+    return () => unsubscribe();
   }, [uid]);
 
-
-
-
-
-
-
-
   //   handle follow back
+  // const followUser = async (currentUserId, targetUserId) => {
+  //   if (!currentUserId || !targetUserId || !profileData) return;
+
+  //   try {
+  //     const batch = firestore().batch();
+  //     const currentUserRef = firestore().collection('users').doc(currentUserId);
+  //     const targetUserRef = firestore().collection('users').doc(targetUserId);
+
+  //     const { displayName, lastName, profileImage } = profileData;
+
+  //     // If already following — unfollow
+  //     if (isFollowing) {
+  //       // Get current user's document
+  //       const currentUserDoc = await currentUserRef.get();
+  //       const currentUserData = currentUserDoc.data();
+  //       const updatedFollowing = (currentUserData.following || []).filter(
+  //         u => u.uid !== targetUserId,
+  //       );
+  //       batch.update(currentUserRef, { following: updatedFollowing });
+
+  //       // Get target user's followers and filter
+  //       const targetUserDoc = await targetUserRef.get();
+  //       const targetUserData = targetUserDoc.data();
+  //       const updatedFollowers = (targetUserData.followers || []).filter(
+  //         u => u.uid !== currentUserId,
+  //       );
+  //       batch.update(targetUserRef, { followers: updatedFollowers });
+
+  //       setIsFollowing(false);
+  //       Alert.alert('Unfollowed');
+  //     } else {
+  //       // FOLLOW
+
+  //       // 1. Get info of the user you're following
+  //       const targetUserDoc = await targetUserRef.get();
+  //       const targetData = targetUserDoc.data();
+
+  //       const targetDisplayName = targetData?.displayName || '';
+  //       const targetLastName = targetData?.lastName || '';
+  //       const targetProfileImage = targetData?.profileImage || '';
+
+  //       // 2. Add to "following" array of current user
+  //       batch.update(currentUserRef, {
+  //         following: firestore.FieldValue.arrayUnion(
+  //           targetUserId,
+
+  //         ),
+  //       });
+
+  //       // 3. Add to "followers" array of target user
+  //       batch.update(targetUserRef, {
+  //         followers: firestore.FieldValue.arrayUnion(
+  //           currentUserId,
+
+  //           //   {
+  //           //   uid: currentUserId,
+  //           //   displayName,
+  //           //   lastName,
+  //           //   profileImage,
+  //           //   timestamp: Timestamp.now(),
+  //           // }
+  //         ),
+  //       });
+
+  //       await firestore()
+  //         .collection('notifications')
+  //         .add({
+  //           recipientId: targetUserId,
+  //           type: 'new_follower',
+  //           uid: currentUserId,
+  //           displayName: `${displayName} ${lastName}`,
+  //           profileImage: profileImage,
+  //           timestamp: firestore.Timestamp.now(),
+  //           read: false,
+  //         });
+
+  //       setIsFollowing(true);
+  //       Alert.alert('Followed');
+  //     }
+
+  //     await batch.commit();
+  //   } catch (error) {
+  //     console.error('Error following/unfollowing:', error);
+  //   }
+  // };
+
   const followUser = async (currentUserId, targetUserId) => {
     if (!currentUserId || !targetUserId || !profileData) return;
 
     try {
-      const batch = firestore().batch();
       const currentUserRef = firestore().collection('users').doc(currentUserId);
       const targetUserRef = firestore().collection('users').doc(targetUserId);
 
-      const { displayName, lastName, profileImage } = profileData;
+      // Check if already following to avoid duplicates
+      const currentUserDoc = await currentUserRef.get();
+      const currentUserFollowing = currentUserDoc.data()?.following || [];
 
-      // If already following — unfollow
-      if (isFollowing) {
-        // Get current user's document
-        const currentUserDoc = await currentUserRef.get();
-        const currentUserData = currentUserDoc.data();
-        const updatedFollowing = (currentUserData.following || []).filter(
-          u => u.uid !== targetUserId,
-        );
-        batch.update(currentUserRef, { following: updatedFollowing });
+      if (currentUserFollowing.includes(targetUserId)) {
+        Alert.alert('You are already following this user');
+        return;
+      }
 
-        // Get target user's followers and filter
-        const targetUserDoc = await targetUserRef.get();
-        const targetUserData = targetUserDoc.data();
-        const updatedFollowers = (targetUserData.followers || []).filter(
-          u => u.uid !== currentUserId,
-        );
-        batch.update(targetUserRef, { followers: updatedFollowers });
+      // Batch update to add follower/following
+      const batch = firestore().batch();
 
-        setIsFollowing(false);
-        Alert.alert('Unfollowed');
-      } else {
-        // FOLLOW
+      batch.update(currentUserRef, {
+        following: firestore.FieldValue.arrayUnion(targetUserId),
+      });
 
-        // 1. Get info of the user you're following
-        const targetUserDoc = await targetUserRef.get();
-        const targetData = targetUserDoc.data();
+      batch.update(targetUserRef, {
+        followers: firestore.FieldValue.arrayUnion(currentUserId),
+      });
 
-        const targetDisplayName = targetData?.displayName || '';
-        const targetLastName = targetData?.lastName || '';
-        const targetProfileImage = targetData?.profileImage || '';
+      await batch.commit();
 
-        // 2. Add to "following" array of current user
-        batch.update(currentUserRef, {
-          following: firestore.FieldValue.arrayUnion(
-            targetUserId,
-            //   {
-            //   uid: targetUserId,
-            //   displayName: targetDisplayName,
-            //   lastName: targetLastName,
-            //   profileImage: targetProfileImage,
-            //   timestamp: Timestamp.now(),
-            // }
-          ),
-        });
+      // Add follower notification only if doesn't exist
+      const existingNotification = await firestore()
+        .collection('notifications')
+        .where('recipientId', '==', targetUserId)
+        .where('type', '==', 'new_follower')
+        .where('uid', '==', currentUserId)
+        .limit(1)
+        .get();
 
-        // 3. Add to "followers" array of target user
-        batch.update(targetUserRef, {
-          followers: firestore.FieldValue.arrayUnion(
-            currentUserId,
-
-            //   {
-            //   uid: currentUserId,
-            //   displayName,
-            //   lastName,
-            //   profileImage,
-            //   timestamp: Timestamp.now(),
-            // }
-          ),
-        });
-
+      if (existingNotification.empty) {
         await firestore()
           .collection('notifications')
           .add({
             recipientId: targetUserId,
             type: 'new_follower',
             uid: currentUserId,
-            displayName: `${displayName} ${lastName}`,
-            profileImage: profileImage,
+            displayName:
+              `${profileData.displayName} ${profileData.lastName}`.trim(),
+            profileImage: profileData.profileImage,
             timestamp: firestore.Timestamp.now(),
             read: false,
           });
-
-        setIsFollowing(true);
-        Alert.alert('Followed');
       }
 
-      await batch.commit();
+      Alert.alert('Followed back successfully!');
     } catch (error) {
-      console.error('Error following/unfollowing:', error);
+      console.error('Error following user:', error);
+      Alert.alert('Error', 'Could not follow user.');
     }
   };
 
   const renderFollower = ({ item }) => {
-    const isFollowingUser = followStatus[item.uid] || false;
-
+    // const isFollowingUser = followStatus[item.uid] || false;
+    if(!item.profileImage || !item.displayName) return
     return (
       <View style={styles(theme).NotificationContainer}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -240,16 +292,12 @@ const FollowersScreen = () => {
             onPress={() => navigateToProfile(item.uid)}
             style={{ marginLeft: 10 }}
           >
-            <Text style={styles(theme).displayName}>
-              {item.displayName} {item.lastName}
-            </Text>
+            <Text style={styles(theme).displayName}>{item.displayName}</Text>
             <Text style={styles(theme).alert}>New follower</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={() => followUser(uid, item.uid)}>
-          <Text style={styles(theme).followback}>
-            {isFollowingUser ? 'Unfollow' : 'Follow back'}
-          </Text>
+          <Text style={styles(theme).followback}>Follow back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -294,7 +342,7 @@ const FollowersScreen = () => {
         </View>
       ) : searchQuery.trim().length === 0 ? (
         <FlatList
-          data={followers}
+          data={notifications}
           keyExtractor={(item, index) => `${item.uid}-${index}`}
           renderItem={renderFollower}
           onEndReachedThreshold={0.1}
@@ -447,8 +495,8 @@ const styles = theme =>
     },
 
     image: {
-      width: 50,
-      height: 50,
+      width: 35,
+      height: 35,
       borderRadius: 25,
       backgroundColor: '#ccc',
     },

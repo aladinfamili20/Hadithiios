@@ -20,12 +20,15 @@ import DarkMode from '../Theme/DarkMode';
 import FecthUserProfile from '../FetchUserProfile';
 
 const REPORT_CATEGORIES = [
-  'Suicide',
-  'Self-injury',
-  'Violence or hate',
-  'Promoting drugs or restricted items',
-  'Nudity or sexual activity',
+  'Impersonation',
+  'Fake account',
+  'Harassment or bullying',
+  'Threats or intimidation',
+  'Hate speech or symbols',
   'Scam or fraud',
+  'Sharing private information',
+  'Sexual exploitation',
+  'Child exploitation',
 ];
 
 const ProfileHeader = ({ userData }) => {

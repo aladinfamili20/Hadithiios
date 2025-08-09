@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   Image,
   TouchableOpacity,
   ActivityIndicator,
@@ -18,23 +17,102 @@ import auth from '@react-native-firebase/auth';
 import DarkMode from '../components/Theme/DarkMode';
 import { useUser } from '../data/Collections/FetchUserData';
 import { SwipeListView } from 'react-native-swipe-list-view';
+import Video from 'react-native-video';
 
 const Notifications = () => {
   const theme = DarkMode();
   const user = auth().currentUser;
   const uid = user?.uid;
 
-  const [follwedNotifications, setFollwedNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [likeNotifications, setLikeNotifications] = useState([]);
   const { userData } = useUser();
   const navigation = useNavigation();
+  const [notifications, setNotifications] = useState([]);
+  const [playingVideoId, setPlayingVideoId] = useState(null); // which video is playing
 
   useEffect(() => {
     setProfileData(userData);
   }, [userData]);
+
+  // useEffect(() => {
+  //   const getFollewerNotification = async () => {
+  //     if (!uid) return;
+  //      try {
+  //       const snapshot = await firestore()
+  //         .collection('notifications')
+  //         .where('recipientId', '==', uid)
+  //         .get();
+
+  //       const documents = snapshot.docs.map(doc => ({
+  //         id: doc.id,
+  //         ...doc.data(),
+  //         // type: 'new_follower',
+  //         key: `new_follower-${doc.id}`,
+  //         timestamp: doc.data().timestamp || Timestamp.now(),
+  //       }));
+  //       setFollwedNotifications(documents);
+  //     } catch (error) {
+  //       console.error('Error fetching follower notifications:', error);
+  //     } finally {
+  //       setLoading(false); // ✅ move here
+  //     }
+  //   };
+  //   getFollewerNotification();
+  // }, [uid]);
+
+  // fetched liked photos
+  // useEffect(() => {
+  //   const getLikedNotifications = async () => {
+  //     if (!uid) return;
+  //     try {
+  //       const snapshot = await firestore()
+  //         .collection('notifications')
+  //         .where('recipientId', '==', uid)
+  //         .get();
+
+  //       const documents = snapshot.docs.map(doc => ({
+  //         id: doc.id,
+  //         ...doc.data(),
+  //         type: 'like',
+  //         key: `like-${doc.id}`,
+  //         timestamp: doc.timestamp || Timestamp.now(),
+  //       }));
+  //       setLikeNotifications(documents);
+  //     } catch (error) {
+  //       console.error('Error fetching liked notifications:', error);
+  //     }
+  //   };
+  //   getLikedNotifications();
+  // }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+
+    const unsubscribe = firestore()
+      .collection('notifications')
+      .where('recipientId', '==', uid)
+      .orderBy('timestamp', 'desc')
+      .onSnapshot(
+        snapshot => {
+          const data = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            key: `${doc.data().type}-${doc.id}`,
+            timestamp: doc.data().timestamp || firestore.Timestamp.now(),
+          }));
+          setNotifications(data);
+          setLoading(false);
+        },
+        error => {
+          console.error('Error fetching notifications:', error);
+          setLoading(false);
+        },
+      );
+
+    return () => unsubscribe();
+  }, [uid]);
 
   const navigateToProfile = userId => {
     if (!userId) return;
@@ -46,104 +124,65 @@ const Notifications = () => {
     );
   };
 
- 
-  // fetched followers
-  useEffect(() => {
-    const getFollewerNotification = async () => {
-      if (!uid) return;
-      try {
-        const snapshot = await firestore()
-          .collection('notifications')
-          .where('recipientId', '==', uid)
-          .get();
+  const followUser = async (currentUserId, targetUserId) => {
+    if (!currentUserId || !targetUserId || !profileData) return;
 
-        const documents = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          // type: 'new_follower',
-          key: `new_follower-${doc.id}`,
-          timestamp: doc.data().timestamp || Timestamp.now(),
-        }));
-        setFollwedNotifications(documents);
-      } catch (error) {
-        console.error('Error fetching follower notifications:', error);
-      } finally {
-        setLoading(false); // ✅ move here
+    try {
+      const currentUserRef = firestore().collection('users').doc(currentUserId);
+      const targetUserRef = firestore().collection('users').doc(targetUserId);
+
+      // Check if already following to avoid duplicates
+      const currentUserDoc = await currentUserRef.get();
+      const currentUserFollowing = currentUserDoc.data()?.following || [];
+
+      if (currentUserFollowing.includes(targetUserId)) {
+        Alert.alert('You are already following this user');
+        return;
       }
-    };
-    getFollewerNotification();
-  }, [uid]);
 
-  // fetched liked photos
-  useEffect(() => {
-    const getLikedNotifications = async () => {
-      if (!uid) return;
-      try {
-        const snapshot = await firestore()
+      // Batch update to add follower/following
+      const batch = firestore().batch();
+
+      batch.update(currentUserRef, {
+        following: firestore.FieldValue.arrayUnion(targetUserId),
+      });
+
+      batch.update(targetUserRef, {
+        followers: firestore.FieldValue.arrayUnion(currentUserId),
+      });
+
+      await batch.commit();
+
+      // Add follower notification only if doesn't exist
+      const existingNotification = await firestore()
+        .collection('notifications')
+        .where('recipientId', '==', targetUserId)
+        .where('type', '==', 'new_follower')
+        .where('uid', '==', currentUserId)
+        .limit(1)
+        .get();
+
+      if (existingNotification.empty) {
+        await firestore()
           .collection('notifications')
-          .where('postUserUid', '==', uid)
-          .get();
-
-        const documents = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          type: 'like',
-          key: `like-${doc.id}`,
-          timestamp: doc.timestamp || Timestamp.now(),
-        }));
-        setLikeNotifications(documents);
-      } catch (error) {
-        console.error('Error fetching liked notifications:', error);
+          .add({
+            recipientId: targetUserId,
+            type: 'new_follower',
+            uid: currentUserId,
+            displayName:
+              `${profileData.displayName} ${profileData.lastName}`.trim(),
+            profileImage: profileData.profileImage,
+            timestamp: firestore.Timestamp.now(),
+            read: false,
+          });
       }
-    };
-    getLikedNotifications();
-  }, [uid]);
 
-const followUser = async (currentUserId, targetUserId) => {
-  if (!currentUserId || !targetUserId || !profileData) return;
-
-  try {
-    const batch = firestore().batch();
-    const currentUserRef = firestore().collection('users').doc(currentUserId);
-    const targetUserRef = firestore().collection('users').doc(targetUserId);
-    const { displayName, lastName, profileImage } = profileData;
-
-    // Remove and re-add target userId to avoid duplication
-    batch.update(currentUserRef, {
-      following: firestore.FieldValue.arrayRemove(targetUserId),
-    });
-    batch.update(currentUserRef, {
-      following: firestore.FieldValue.arrayUnion(targetUserId),
-    });
-
-    // Remove and re-add current userId to target’s followers list
-    batch.update(targetUserRef, {
-      followers: firestore.FieldValue.arrayRemove(currentUserId),
-    });
-    batch.update(targetUserRef, {
-      followers: firestore.FieldValue.arrayUnion(currentUserId),
-    });
-
-    await batch.commit();
-
-    // Add a new follower notification
-    await firestore().collection('notifications').add({
-      recipientId: targetUserId,
-      type: 'new_follower',
-      uid: currentUserId,
-      displayName,
-      lastName,
-      profileImage,
-      timestamp: firestore.Timestamp.now(),
-      read: false,
-    });
-
-    Alert.alert('Followed back');
-  } catch (error) {
-    console.error('Error following back:', error);
-  }
-};
-
+      Alert.alert('Followed back successfully!');
+    } catch (error) {
+      console.error('Error following user:', error);
+      Alert.alert('Error', 'Could not follow user.');
+    }
+  };
 
   const handleDelete = async id => {
     Alert.alert(
@@ -167,32 +206,37 @@ const followUser = async (currentUserId, targetUserId) => {
     );
   };
 
-  const combinedNotifications = [
-    // ...followers.map((item, index) => ({
-    //   ...item,
-    //   type: 'follower',
-    //   // key: `follower-${item.uid}`,
-    //   key: `follower-${item.uid}-${index}`, // Ensures uniqueness
+  // const combinedNotifications = [
+  //   // ...followers.map((item, index) => ({
+  //   //   ...item,
+  //   //   type: 'follower',
+  //   //   // key: `follower-${item.uid}`,
+  //   //   key: `follower-${item.uid}-${index}`, // Ensures uniqueness
 
-    //   timestamp: item.timestamp || Timestamp.now(), // fallback if missing
-    // })),
-    ...likeNotifications.map(item => ({
-      ...item,
-      type: 'like',
-      key: `like-${item.id}`,
-      timestamp: item.timestamp || Timestamp.now(), // ensure it's present
-    })),
-    ...follwedNotifications.map(item => ({
-      ...item,
-      type: 'new_follower',
-      key: `new_follower-${item.id}`,
-      timestamp: item.timestamp || Timestamp.now(), // ensure it's present
-    })),
-  ].sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis()); // newest first
+  //   //   timestamp: item.timestamp || Timestamp.now(), // fallback if missing
+  //   // })),
+  //   ...likeNotifications.map(item => ({
+  //     ...item,
+  //     type: 'like',
+  //     key: `like-${item.id}`,
+  //     timestamp: item.timestamp || Timestamp.now(), // ensure it's present
+  //   })),
+  //   ...follwedNotifications.map(item => ({
+  //     ...item,
+  //     type: 'new_follower',
+  //     key: `new_follower-${item.id}`,
+  //     timestamp: item.timestamp || Timestamp.now(), // ensure it's present
+  //   })),
+  // ].sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis()); // newest first
 
-  const renderItem = ({ item }) => (
- 
-      <View style={styles(theme).NotificationContainer}>
+  const combinedNotifications = Array.isArray(notifications)
+    ? notifications.sort(
+        (a, b) => b.timestamp.toMillis() - a.timestamp.toMillis(),
+      )
+    : [];
+
+  const renderItemm = ({ item }) => (
+    <View style={styles(theme).NotificationContainer}>
       {item.type === 'new_follower' ? (
         <>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -210,9 +254,7 @@ const followUser = async (currentUserId, targetUserId) => {
               onPress={() => navigateToProfile(item.uid)}
               style={{ marginLeft: 10 }}
             >
-              <Text style={styles(theme).displayName}>
-                {item.displayName}
-              </Text>
+              <Text style={styles(theme).displayName}>{item.displayName}</Text>
               <Text style={styles(theme).alert}>New follower</Text>
             </TouchableOpacity>
           </View>
@@ -233,7 +275,7 @@ const followUser = async (currentUserId, targetUserId) => {
               <Text style={styles(theme).displayName}>
                 {item.lickerDisplayName}
               </Text>
-              <Text style={styles(theme).alert}>Liked your photo</Text>
+              <Text style={styles(theme).alert}>Liked your post</Text>
 
               {/* <Text style={styles(theme).timestamp}>
   {item.timestamp.toDate().toLocaleString()}
@@ -248,8 +290,104 @@ const followUser = async (currentUserId, targetUserId) => {
         </>
       )}
     </View>
- 
   );
+
+  const renderItem = ({ item }) => {
+    if (item.type === 'new_follower') {
+      return (
+        <View style={styles(theme).NotificationContainer}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => navigateToProfile(item.uid)}>
+              <Image
+                style={styles(theme).image}
+                source={
+                  item.profileImage
+                    ? { uri: item.profileImage }
+                    : require('../assets/thumblogo.png')
+                }
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigateToProfile(item.uid)}
+              style={{ marginLeft: 10 }}
+            >
+              <Text style={styles(theme).displayName}>{item.displayName}</Text>
+              <Text style={styles(theme).alert}>New follower</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={() => followUser(uid, item.uid)}>
+            <Text style={styles(theme).followback}>Follow back</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (item.type === 'like') {
+      return (
+        <View style={styles(theme).NotificationContainer}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => navigateToProfile(item.uid)}>
+              <Image
+                source={{ uri: item.lickerProfileImage }}
+                style={styles(theme).image}
+              />
+            </TouchableOpacity>
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles(theme).displayName}>
+                {item.lickerDisplayName}
+              </Text>
+              <Text style={styles(theme).alert}>Liked your post</Text>
+
+              {/* <Text style={styles(theme).timestamp}>
+  {item.timestamp.toDate().toLocaleString()}
+</Text> */}
+            </View>
+            
+          </View>
+
+          <Image
+            source={{ uri: item.postImage }}
+            style={styles(theme).lickedPostImage}
+          />
+        </View>
+      );
+    }
+
+    if (item.type === 'likevideo') {
+      return (
+        <View style={styles(theme).NotificationContainer}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => navigateToProfile(item.uid)}>
+              <Image
+                source={
+                  item.lickerProfileImage
+                    ? { uri: item.lickerProfileImage }
+                    : require('../assets/thumblogo.png')
+                }
+                style={styles(theme).image}
+              />
+            </TouchableOpacity>
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles(theme).displayName}>
+                {item.lickerDisplayName}
+              </Text>
+              <Text style={styles(theme).alert}>Liked your video</Text>
+            </View>
+          </View>
+
+          <Video
+            source={{ uri: item.postImage }}
+            style={styles(theme).lickedPostVideo}
+            resizeMode="cover"
+            controls
+            paused={true} // Start paused, user can play it
+          />
+        </View>
+      );
+    }
+
+    return <View style={{ height: 0 }} />;
+  };
 
   const renderHiddenItem = data => (
     <View
@@ -267,38 +405,43 @@ const followUser = async (currentUserId, targetUserId) => {
   );
 
   return (
-   <View style={styles(theme).container}>
-    <View style={styles(theme).header}>
-      <TouchableOpacity onPress={() => navigation.navigate('feed')}>
-        <Ionicons
-          name="chevron-back-outline"
-          color={theme === 'dark' ? '#fff' : '#121212'}
-          size={24}
-        />
-      </TouchableOpacity>
-      <Text style={styles(theme).texth1}>Notifications</Text>
-    </View>
-
-    {loading ? (
-      <ActivityIndicator size="large" color="tomato" />
-    ) : combinedNotifications.length === 0 ? (
-      <View style={{ alignItems: 'center', marginTop: 50 }}>
-        <Text style={{ color: theme === 'dark' ? '#fff' : '#121212', fontSize: 16 }}>
-          You have no notifications.
-        </Text>
+    <View style={styles(theme).container}>
+      <View style={styles(theme).header}>
+        <TouchableOpacity onPress={() => navigation.navigate('feed')}>
+          <Ionicons
+            name="chevron-back-outline"
+            color={theme === 'dark' ? '#fff' : '#121212'}
+            size={24}
+          />
+        </TouchableOpacity>
+        <Text style={styles(theme).texth1}>Notifications</Text>
       </View>
-    ) : (
-      <SwipeListView
-        data={combinedNotifications}
-        renderItem={renderItem}
-        renderHiddenItem={renderHiddenItem}
-        rightOpenValue={-75}
-        keyExtractor={item => item.key}
-        disableRightSwipe
-        showsVerticalScrollIndicator={false}
-      />
-    )}
-  </View>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="tomato" />
+      ) : combinedNotifications.length === 0 ? (
+        <View style={{ alignItems: 'center', marginTop: 50 }}>
+          <Text
+            style={{
+              color: theme === 'dark' ? '#fff' : '#121212',
+              fontSize: 16,
+            }}
+          >
+            You have no notifications.
+          </Text>
+        </View>
+      ) : (
+        <SwipeListView
+          data={combinedNotifications}
+          renderItem={renderItem}
+          renderHiddenItem={renderHiddenItem}
+          rightOpenValue={-75}
+          keyExtractor={item => item.key}
+          disableRightSwipe
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
   );
 };
 
@@ -396,5 +539,12 @@ const styles = theme =>
       width: 40,
       height: 40,
       borderRadius: 20,
+    },
+
+    lickedPostVideo: {
+      width: 60,
+      height: 60,
+      borderRadius: 10,
+      marginTop: 10,
     },
   });

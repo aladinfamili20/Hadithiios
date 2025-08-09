@@ -59,11 +59,6 @@ export const fetchPostsByFollowing = async (
   const blockedUids = await fetchBlockedUids();
 
   const postsRef = collection(db, 'posts');
-  // const uidsOnly = following.map(f => f.uid);
-  // const uidsOnly = following
-  // .map(f => f?.uid)
-  // .filter(uid => typeof uid === 'string' && uid.trim() !== '' && !Array.isArray(uid));
-
   const uidsOnly = following.filter(
     uid => typeof uid === 'string' && uid.trim() !== '',
   );
