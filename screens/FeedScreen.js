@@ -11,8 +11,7 @@ import DarkMode from '../components/Theme/DarkMode';
 import VideoScreen from './Video/VideoScreen';
 import SearchScreen from './SearchScreen';
 import UploadPost from './Post/UploadPost';
-import CameraScreen from './camera/CameraScreen';
-
+ 
 const Tab = createBottomTabNavigator();
 
 const FeedScreen = () => {

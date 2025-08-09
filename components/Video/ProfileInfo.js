@@ -58,7 +58,7 @@ const ProfileInfo = () => {
                 <Text style={styles(theme).displayName}>
                   {postDetails.displayName} {postDetails.lastName}
                 </Text>
-                <Text style={styles(theme).timetemp}>{postDetails.time}</Text>
+                <Text style={styles(theme).timetemp}>Posted on: {postDetails.datePosted}</Text>
               </View>
             </View>
           </TouchableOpacity>
